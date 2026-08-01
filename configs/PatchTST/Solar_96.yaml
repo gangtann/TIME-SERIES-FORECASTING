@@ -1,0 +1,14 @@
+# PatchTST / Solar-Energy (137 变量, 10 分钟采样) / 96 -> 96
+basic:
+  model_id: Solar_96_96
+
+data:
+  data: Solar
+  data_path: solar_AL.txt
+  enc_in: 137
+  dec_in: 137
+  c_out: 137
+
+model:
+  e_layers: 2
+  factor: 3

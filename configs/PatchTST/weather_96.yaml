@@ -1,0 +1,18 @@
+# PatchTST / Weather (21 变量, 10 分钟采样) / 96 -> 96
+basic:
+  model_id: weather_96_96
+
+data:
+  data: custom
+  data_path: weather.csv
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  e_layers: 2
+  n_heads: 4
+  factor: 3
+
+training:
+  train_epochs: 3

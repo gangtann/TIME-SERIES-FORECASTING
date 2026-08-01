@@ -1,0 +1,13 @@
+# PatchTST / ETTm2 / 96 -> 96
+basic:
+  model_id: ETTm2_96_96
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  freq: t
+
+model:
+  e_layers: 1
+  n_heads: 2
+  factor: 3

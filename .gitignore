@@ -1,0 +1,20 @@
+# 个人笔记
+notes/
+
+# 机器级配置（模板 local.yaml.example 要入库）
+configs/local.yaml
+
+# 训练产物
+checkpoints/*
+!checkpoints/.gitkeep
+results/*
+!results/.gitkeep
+
+# 数据文件（README 入库；ETTh1.csv 例外，供开箱冒烟测试）
+dataset/*
+!dataset/README.md
+!dataset/ETTh1.csv
+
+__pycache__/
+.idea/
+.DS_Store

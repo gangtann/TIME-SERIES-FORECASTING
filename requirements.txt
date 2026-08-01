@@ -1,0 +1,8 @@
+torch
+numpy
+pandas
+scikit-learn
+PyYAML
+matplotlib
+# 可选：本地缺数据集时从 HuggingFace 自动下载（仅 CSV 类数据集）
+# datasets

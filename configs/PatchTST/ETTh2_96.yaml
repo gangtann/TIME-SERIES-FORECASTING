@@ -1,0 +1,12 @@
+# PatchTST / ETTh2 / 96 -> 96
+basic:
+  model_id: ETTh2_96_96
+
+data:
+  data: ETTh2
+  data_path: ETTh2.csv
+
+model:
+  e_layers: 1
+  n_heads: 2
+  factor: 3

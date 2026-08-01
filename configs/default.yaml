@@ -1,0 +1,59 @@
+# 全局默认配置。实验配置（configs/<Model>/*.yaml）按节深合并覆盖这里的值；
+# 命令行可用 --set key=value 覆盖单项（支持 'training.learning_rate=1e-3' 或裸 'pred_len=192'）。
+# 合并后所有叶子键被扁平化为单层命名空间，代码里以 configs.d_model 方式访问，
+# 因此不同节之间的键名不允许重复。
+
+basic:
+  task_name: long_term_forecast
+  model: PatchTST          # models/__init__.py 的 MODEL_REGISTRY 键名
+  model_id: test           # 实验标识，进入 checkpoint/结果目录名
+  seed: 2021
+  deterministic: false     # true = 严格复现模式（cudnn.deterministic，稍慢）
+  is_training: 1           # 0 = 只加载 checkpoint 测试
+  des: exp                 # 实验描述后缀
+  itr: 1                   # 重复次数
+
+data:
+  data: ETTh1              # data_provider/data_factory.py 的 data_dict 键名
+  root_path: ./dataset/
+  data_path: ETTh1.csv
+  features: M              # M: 多变量预测多变量; S: 单变量; MS: 多变量预测单变量
+  target: OT               # features 为 S/MS 时的目标列
+  freq: h                  # 时间特征频率: s/t/h/d/b/w/m
+  embed: timeF             # timeF: time_features 编码; 其他: 整数日历特征
+  seq_len: 96              # 输入窗口长度
+  label_len: 48            # decoder 起始 token 长度（PatchTST 不使用）
+  pred_len: 96             # 预测长度
+  enc_in: 7                # 输入变量数
+  dec_in: 7
+  c_out: 7
+  num_workers: 4
+  inverse: false           # 测试时是否反标准化后再算指标
+
+model:
+  d_model: 512
+  n_heads: 8
+  e_layers: 2
+  d_layers: 1
+  d_ff: 2048
+  factor: 1
+  dropout: 0.1
+  activation: gelu
+  patch_len: 16
+  stride: 8
+
+training:
+  train_epochs: 10
+  batch_size: 32
+  patience: 3
+  learning_rate: 0.0001
+  loss: MSE
+  lradj: type1             # type1/type2/type3/cosine/constant/TST(OneCycleLR)
+  pct_start: 0.3           # 仅 lradj=TST 时生效
+  use_amp: false
+
+system:
+  use_gpu: true
+  gpu: 0
+  checkpoints: ./checkpoints/
+  results: ./results/

@@ -1,0 +1,15 @@
+# PatchTST / PEMS03 (358 传感器, 5 分钟采样) / 96 -> 12
+basic:
+  model_id: PEMS03_96_12
+
+data:
+  data: PEMS
+  data_path: PEMS03.npz
+  pred_len: 12
+  enc_in: 358
+  dec_in: 358
+  c_out: 358
+
+model:
+  e_layers: 2
+  factor: 3

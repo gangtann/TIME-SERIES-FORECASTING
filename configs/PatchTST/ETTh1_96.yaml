@@ -1,0 +1,12 @@
+# PatchTST / ETTh1 / 96 -> 96（对齐 TSLib 官方脚本，期望 MSE ≈ 0.37-0.42）
+basic:
+  model_id: ETTh1_96_96
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+
+model:
+  e_layers: 1
+  n_heads: 2
+  factor: 3
