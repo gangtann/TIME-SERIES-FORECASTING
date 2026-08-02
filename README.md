@@ -20,7 +20,23 @@ python run.py -c configs/PatchTST/ETTh1_96.yaml --set training.learning_rate=1e-
 ```
 
 ETTh1 96→96 参考结果（标准化尺度）：MSE ≈ 0.37–0.42，MAE ≈ 0.39–0.42。
-每次测试的指标追加写入 `results/results.csv`，预测值/真值/指标保存在 `results/<setting>/`。
+
+每次运行的产物（`<setting>` = `{model_id}_{des}_{itr序号}`，如 `ETTh1_96_96_exp_0`）：
+
+- `checkpoints/<setting>/checkpoint.pth` — 验证集最优权重
+- `checkpoints/<setting>/config.yaml` — 合并后完整配置的快照（含命令行覆盖）
+- `checkpoints/<setting>/train.log` — 全部运行日志（终端输出的完整副本，追加模式）
+- `results/<setting>/` — `pred.npy` / `true.npy` / `metrics.npy` + 预测对比图
+- `results/results.csv` — 所有实验的指标汇总，每次测试追加一行
+
+**复现某次实验**：配置快照本身就是合法的实验配置，直接指给 `-c` 即可原样重跑：
+
+```bash
+python run.py -c checkpoints/ETTh1_96_96_exp_0/config.yaml
+```
+
+注意：目录名不再编码超参数，用 `--set` 改超参做对比实验时，请同时改 `des`
+（如 `--set d_model=256 des=dm256`）或 `model_id`，否则同名目录会被覆盖。
 
 ## 目录结构
 

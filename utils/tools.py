@@ -1,12 +1,44 @@
 import math
 import os
 import random
+import sys
+from contextlib import contextmanager
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
 plt.switch_backend('agg')
+
+
+class _Tee:
+    def __init__(self, stream, file):
+        self.stream = stream
+        self.file = file
+
+    def write(self, msg):
+        self.stream.write(msg)
+        self.file.write(msg)
+        self.file.flush()
+
+    def flush(self):
+        self.stream.flush()
+        self.file.flush()
+
+
+@contextmanager
+def tee_output(log_path):
+    """把 stdout/stderr 同时写入终端和日志文件（追加模式）。"""
+    with open(log_path, 'a') as f:
+        f.write('\n===== run at {} =====\n'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout = _Tee(old_stdout, f)
+        sys.stderr = _Tee(old_stderr, f)
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 
 def seed_everything(seed, deterministic=False):

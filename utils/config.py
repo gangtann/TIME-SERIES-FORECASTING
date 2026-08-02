@@ -79,13 +79,22 @@ def flatten_sections(cfg):
 
 
 class Config:
-    def __init__(self, d):
+    def __init__(self, d, sections=None):
         self.__dict__.update(d)
+        # 分节形式的完整配置（default + 实验 yaml + local + 命令行覆盖后），
+        # 用于保存可直接重跑的快照；下划线开头，不参与属性访问语义
+        self._sections = sections or {}
+
+    def save(self, path):
+        """把合并后的完整配置存为快照，可用 run.py -c <path> 原样重跑。"""
+        with open(path, 'w') as f:
+            yaml.safe_dump(self._sections, f, sort_keys=False, allow_unicode=True)
 
     def __repr__(self):
-        width = max(len(k) for k in self.__dict__)
+        items = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        width = max(len(k) for k in items)
         lines = ['{:<{w}}  {}'.format(k, v, w=width)
-                 for k, v in sorted(self.__dict__.items())]
+                 for k, v in sorted(items.items())]
         bar = '-' * 60
         return '\n'.join([bar, 'Experiment Configuration', bar] + lines + [bar])
 
@@ -120,4 +129,4 @@ def load_config(argv=None):
         key, _, val = item.partition('=')
         set_override(cfg, key, parse_value(val))
 
-    return Config(flatten_sections(cfg))
+    return Config(flatten_sections(cfg), sections=cfg)
