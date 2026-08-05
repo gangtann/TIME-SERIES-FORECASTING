@@ -121,7 +121,15 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         ],
     }
 
-    offset = to_offset(freq_str)
+    # pandas 2.2+ 移除/更名了部分频率别名（t->min, S->s, M->ME, Y/A->YE, H->h），
+    # 这里做归一化以同时兼容新旧写法
+    legacy_alias = {'t': 'min', 'T': 'min', 'S': 's',
+                    'm': 'ME', 'M': 'ME', 'q': 'QE', 'Q': 'QE',
+                    'y': 'YE', 'Y': 'YE', 'a': 'YE', 'A': 'YE', 'H': 'h'}
+    try:
+        offset = to_offset(legacy_alias.get(freq_str, freq_str))
+    except ValueError:
+        offset = to_offset(freq_str)
 
     for offset_type, feature_classes in features_by_offsets.items():
         if isinstance(offset, offset_type):
