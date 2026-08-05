@@ -22,14 +22,25 @@ python run.py -c configs/PatchTST/ETTh1_96.yaml --set train_epochs=1
 python run.py -c configs/PatchTST/ETTh1_96.yaml --set training.learning_rate=1e-3 pred_len=192
 ```
 
-Reference result for ETTh1 96→96 (standardized scale): MSE ≈ 0.37–0.42, MAE ≈ 0.39–0.42.
+Shipped experiment configs follow the **official paper repo recipes**
+(PatchTST: [yuqinie98/PatchTST](https://github.com/yuqinie98/PatchTST)) for all model
+and optimization hyperparameters, while keeping this framework's evaluation protocol
+(splits / scaling / metrics / `drop_last=False`) and `seq_len` 96 (illness 36), with
+`train_epochs` capped at 30. Reference result for ETTh1 96→96 (standardized scale):
+MSE ≈ 0.37–0.40. Exchange has no official script (not tested in the paper) and borrows
+the ETTh recipe.
 
 Artifacts per run (`<setting>` = `{model_id}_{des}_{itr index}`, e.g. `ETTh1_96_96_exp_0`):
 
-- `checkpoints/<setting>/checkpoint.pth` — best weights on the validation set
+- `checkpoints/<setting>/checkpoint.pth` — best weights on the validation set;
+  **written only when `save_checkpoint: true`** (default `false`: the best state is
+  kept in memory for the post-training test; enable it if you need the test-only
+  mode `is_training: 0` later)
 - `checkpoints/<setting>/config.yaml` — snapshot of the full merged config (incl. CLI overrides)
 - `checkpoints/<setting>/train.log` — complete copy of terminal output (append mode)
-- `results/<setting>/` — `pred.npy` / `true.npy` / `metrics.npy` + forecast plots
+- `results/<setting>/` — `metrics.npy` + forecast plots; the full prediction
+  arrays `pred.npy` / `true.npy` are **written only when `save_arrays: true`**
+  (default `false` — they can reach several GB per run on large datasets)
 - `results/results.csv` — one metrics row appended per test across all experiments
 
 **Reproducing a run**: the config snapshot is itself a valid experiment config —
@@ -62,6 +73,7 @@ models/
   PatchTST.py
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # data files (see dataset/README.md)
+scripts/                     # batch runners, e.g. scripts/PatchTST/ETTh1.sh runs all four horizons
 ```
 
 ## Config System

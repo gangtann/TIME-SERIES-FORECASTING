@@ -21,14 +21,22 @@ python run.py -c configs/PatchTST/ETTh1_96.yaml --set train_epochs=1
 python run.py -c configs/PatchTST/ETTh1_96.yaml --set training.learning_rate=1e-3 pred_len=192
 ```
 
-ETTh1 96→96 参考结果（标准化尺度）：MSE ≈ 0.37–0.42，MAE ≈ 0.39–0.42。
+随附实验配置的**模型与优化超参对齐论文官方仓库**
+（PatchTST：[yuqinie98/PatchTST](https://github.com/yuqinie98/PatchTST)），
+评测协议（切分/标准化/指标/`drop_last=False`）与 `seq_len` 96（illness 36）用本框架设定，
+`train_epochs` 统一封顶 30。ETTh1 96→96 参考结果（标准化尺度）：MSE ≈ 0.37–0.40。
+exchange 官方无脚本（论文未测），借用 ETTh 配方。
 
 每次运行的产物（`<setting>` = `{model_id}_{des}_{itr序号}`，如 `ETTh1_96_96_exp_0`）：
 
-- `checkpoints/<setting>/checkpoint.pth` — 验证集最优权重
+- `checkpoints/<setting>/checkpoint.pth` — 验证集最优权重；
+  **仅当 `save_checkpoint: true` 时写盘**（默认 `false`：最优权重保留在内存中用于
+  训练后测试；若以后需要仅测试模式 `is_training: 0`，请开启此项）
 - `checkpoints/<setting>/config.yaml` — 合并后完整配置的快照（含命令行覆盖）
 - `checkpoints/<setting>/train.log` — 全部运行日志（终端输出的完整副本，追加模式）
-- `results/<setting>/` — `pred.npy` / `true.npy` / `metrics.npy` + 预测对比图
+- `results/<setting>/` — `metrics.npy` + 预测对比图；全量预测数组
+  `pred.npy` / `true.npy` **仅当 `save_arrays: true` 时写盘**
+  （默认 `false`——大数据集上单次运行可达数 GB）
 - `results/results.csv` — 所有实验的指标汇总，每次测试追加一行
 
 **复现某次实验**：配置快照本身就是合法的实验配置，直接指给 `-c` 即可原样重跑：
@@ -59,6 +67,7 @@ models/
   PatchTST.py
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # 数据文件（见 dataset/README.md）
+scripts/                     # 批量运行脚本，如 scripts/PatchTST/ETTh1.sh 一键跑四个预测长度
 ```
 
 ## 配置系统
