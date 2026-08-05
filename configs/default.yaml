@@ -57,3 +57,5 @@ system:
   gpu: 0
   checkpoints: ./checkpoints/
   results: ./results/
+  save_checkpoint: false   # true 时把最优权重写盘（is_training: 0 的仅测试模式需要）
+  save_arrays: false       # true 时把 pred.npy/true.npy 全量预测数组写盘（大数据集单实验可达数 GB）

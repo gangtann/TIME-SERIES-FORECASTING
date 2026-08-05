@@ -84,7 +84,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         time_now = time.time()
 
         train_steps = len(train_loader)
-        early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
+        early_stopping = EarlyStopping(patience=self.args.patience, verbose=True,
+                                       save_to_disk=self.args.save_checkpoint)
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
@@ -156,14 +157,15 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             else:
                 print('Updating learning rate to {}'.format(scheduler.get_last_lr()[0]))
 
-        best_model_path = os.path.join(path, 'checkpoint.pth')
-        self.model.load_state_dict(torch.load(best_model_path))
+        # 从内存回载验证集最优权重（save_checkpoint: true 时磁盘上也有一份）
+        self.model.load_state_dict(early_stopping.best_state)
 
         return self.model
 
     def test(self, setting, test=0):
         test_data, test_loader = self._get_data(flag='test')
         if test:
+            # 仅测试模式（is_training: 0）依赖磁盘 checkpoint，训练时需开 save_checkpoint: true
             print('loading model')
             self.model.load_state_dict(
                 torch.load(os.path.join(self.args.checkpoints, setting, 'checkpoint.pth')))
@@ -213,8 +215,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print('mse:{}, mae:{}'.format(mse, mae))
 
         np.save(os.path.join(folder_path, 'metrics.npy'), np.array([mae, mse, rmse, mape, mspe]))
-        np.save(os.path.join(folder_path, 'pred.npy'), preds)
-        np.save(os.path.join(folder_path, 'true.npy'), trues)
+        if self.args.save_arrays:
+            np.save(os.path.join(folder_path, 'pred.npy'), preds)
+            np.save(os.path.join(folder_path, 'true.npy'), trues)
 
         self._append_result_csv(setting, mse, mae, rmse, mape, mspe)
         return

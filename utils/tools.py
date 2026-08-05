@@ -80,7 +80,9 @@ def adjust_learning_rate(optimizer, scheduler, epoch, args, printout=True):
 
 
 class EarlyStopping:
-    def __init__(self, patience=7, verbose=False, delta=0):
+    """最优权重始终保留在内存（best_state）；save_to_disk=True 时才写 checkpoint.pth。"""
+
+    def __init__(self, patience=7, verbose=False, delta=0, save_to_disk=False):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -88,6 +90,8 @@ class EarlyStopping:
         self.early_stop = False
         self.val_loss_min = np.inf
         self.delta = delta
+        self.save_to_disk = save_to_disk
+        self.best_state = None
 
     def __call__(self, val_loss, model, path):
         score = -val_loss
@@ -107,7 +111,9 @@ class EarlyStopping:
     def save_checkpoint(self, val_loss, model, path):
         if self.verbose:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), os.path.join(path, 'checkpoint.pth'))
+        self.best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+        if self.save_to_disk:
+            torch.save(self.best_state, os.path.join(path, 'checkpoint.pth'))
         self.val_loss_min = val_loss
 
 
