@@ -1,0 +1,25 @@
+# PatchTST / Weather / 96 -> 336（超参对齐官方仓库 yuqinie98/PatchTST；seq_len 用本框架协议）
+basic:
+  model_id: weather_96_336
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 336
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  d_model: 128
+  d_ff: 256
+  e_layers: 3
+  n_heads: 16
+  dropout: 0.2
+  head_dropout: 0.0
+  factor: 3
+
+training:
+  batch_size: 128
+  lradj: type3
+  patience: 100

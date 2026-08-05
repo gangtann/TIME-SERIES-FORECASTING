@@ -1,0 +1,24 @@
+# PatchTST / ETTm2 / 96 -> 336（超参对齐官方仓库 yuqinie98/PatchTST；seq_len 用本框架协议）
+basic:
+  model_id: ETTm2_96_336
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  pred_len: 336
+  freq: t
+
+model:
+  d_model: 128
+  d_ff: 256
+  e_layers: 3
+  n_heads: 16
+  dropout: 0.2
+  head_dropout: 0.0
+  factor: 3
+
+training:
+  batch_size: 128
+  lradj: TST
+  pct_start: 0.4
+  patience: 20

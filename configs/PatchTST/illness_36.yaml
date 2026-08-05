@@ -1,0 +1,27 @@
+# PatchTST / Illness / 36 -> 36（超参对齐官方仓库 yuqinie98/PatchTST；seq_len 用本框架协议）
+basic:
+  model_id: illness_36_36
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 36
+
+model:
+  d_model: 16
+  d_ff: 128
+  e_layers: 3
+  n_heads: 4
+  dropout: 0.3
+  head_dropout: 0.0
+  patch_len: 24
+  stride: 2
+  factor: 3
+
+training:
+  batch_size: 16
+  learning_rate: 0.0025
+  lradj: constant
+  patience: 100

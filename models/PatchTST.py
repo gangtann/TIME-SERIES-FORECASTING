@@ -69,7 +69,7 @@ class Model(nn.Module):
         # Prediction Head
         self.head_nf = configs.d_model * int((configs.seq_len - patch_len) / stride + 2)
         self.head = FlattenHead(configs.enc_in, self.head_nf, configs.pred_len,
-                                head_dropout=configs.dropout)
+                                head_dropout=configs.head_dropout)
 
     def forecast(self, x_enc):
         # Normalization from Non-stationary Transformer

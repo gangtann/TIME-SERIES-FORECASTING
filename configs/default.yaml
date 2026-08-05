@@ -38,12 +38,13 @@ model:
   d_ff: 2048
   factor: 1
   dropout: 0.1
+  head_dropout: 0.1        # 预测头独立 dropout（官方 PatchTST 头部为 0，encoder 为 0.2/0.3）
   activation: gelu
   patch_len: 16
   stride: 8
 
 training:
-  train_epochs: 10
+  train_epochs: 30
   batch_size: 32
   patience: 3
   learning_rate: 0.0001

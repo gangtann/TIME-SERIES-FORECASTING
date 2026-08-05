@@ -1,0 +1,26 @@
+# PatchTST / Exchange / 96 -> 336（超参对齐官方仓库 yuqinie98/PatchTST；seq_len 用本框架协议）
+# 官方仓库无 exchange 脚本（论文未测），借用 ETTh 官方配方
+basic:
+  model_id: exchange_96_336
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 336
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  d_model: 16
+  d_ff: 128
+  e_layers: 3
+  n_heads: 4
+  dropout: 0.3
+  head_dropout: 0.0
+  factor: 3
+
+training:
+  batch_size: 128
+  lradj: type3
+  patience: 100

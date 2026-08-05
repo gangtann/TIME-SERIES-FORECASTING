@@ -1,12 +1,22 @@
-# PatchTST / ETTh1 / 96 -> 96（对齐 TSLib 官方脚本，期望 MSE ≈ 0.37-0.42）
+# PatchTST / ETTh1 / 96 -> 96（超参对齐官方仓库 yuqinie98/PatchTST；seq_len 用本框架协议）
 basic:
   model_id: ETTh1_96_96
 
 data:
   data: ETTh1
   data_path: ETTh1.csv
+  pred_len: 96
 
 model:
-  e_layers: 1
-  n_heads: 2
+  d_model: 16
+  d_ff: 128
+  e_layers: 3
+  n_heads: 4
+  dropout: 0.3
+  head_dropout: 0.0
   factor: 3
+
+training:
+  batch_size: 128
+  lradj: type3
+  patience: 100
