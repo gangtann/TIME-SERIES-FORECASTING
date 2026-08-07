@@ -1,0 +1,24 @@
+# TimeFilter / ETTh1 / 96 -> 720（官方 scripts/ETTh1.sh pred_len=720 段；lradj=cosine2 为官方 cosine 公式 lr/2*(1+cos)，需 utils/tools.py 支持）
+basic:
+  model: TimeFilter
+  model_id: TimeFilter_ETTh1_96_720
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+  pred_len: 720
+
+model:
+  d_model: 128
+  d_ff: 128
+  e_layers: 2
+  n_heads: 4
+  dropout: 0.8
+  patch_len: 2
+
+timefilter:
+  tfil_pos: false
+
+training:
+  train_epochs: 10
+  lradj: cosine2

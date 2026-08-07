@@ -87,6 +87,77 @@ prism:                     # PRISM 专用超参（其他模型不读取本节）
   clock_kl_hi: 0.0         # KL 带上界（限制边界漂移；0 关闭）
   clock_reg: 0.0           # KL 带正则权重（经模型 aux loss 钩子生效）
 
+# ---- baseline 模型专属节（键名带模型前缀防撞；各模型只读自己的节）----
+dlinear:
+  dl_individual: false     # 每变量独立线性层；官方默认 False，官方脚本均未开启
+  dl_kernel_size: 25       # 分解滑动平均核宽；官方 models/DLinear.py 硬编码 25，此处参数化
+
+xpatch:
+  xp_ma_type: ema          # 分解移动平均类型: reg(无分解)/ema/dema（官方 run.py 默认 ema）
+  xp_alpha: 0.3            # EMA 平滑系数（官方默认 0.3）
+  xp_beta: 0.3             # DEMA 二阶平滑系数，仅 ma_type=dema 时生效（官方默认 0.3）
+  xp_revin: true           # RevIN 可逆实例归一化开关（官方 --revin 默认 1）
+  xp_padding_patch: end    # patch 末端 ReplicationPad: end/其他值关闭（官方默认 end，脚本从不改）
+
+duet:
+  duet_num_experts: 4      # MoE 专家数（官方 seq96 配方 ETT/weather 均 4，仅 ETTm1 覆盖为 6）
+  duet_k: 2                # noisy top-k 激活专家数（官方 seq96 脚本 20 格全部 k=2）
+  duet_hidden_size: 256    # 路由 encoder 隐层宽度（官方 duet.py 默认 256；仅 ETTm2 覆盖 512）
+  duet_fc_dropout: 0.2     # 预测线性头 dropout（官方默认 0.2；ETTh1=0.1/ETTh2=0.5 由 yaml 覆盖）
+  duet_noisy_gating: true  # noisy top-k 门控开关（官方默认 true，脚本未覆盖）
+  duet_CI: true            # 通道独立模式（官方 seq96 脚本 20 格全部 CI=1）
+  duet_moving_avg: 25      # 专家内部 DLinear 分解滑窗（官方默认 25；不复用 prism 的 moving_avg）
+
+simpletm:
+  stm_alpha: 1.0            # 几何注意力楔积项权重：(1-α)·内积 + α·楔积范数（官方 --alpha 默认 1）
+  stm_l1_weight: 0.00005    # 注意力分数 |scores|.mean() 稀疏正则权重，经 aux_loss 通路生效（0 关闭）
+  stm_wv: db1               # 小波母函数，pywt.Wavelet 支持的任意名（官方默认 db1）
+  stm_m: 3                  # 平稳小波变换分解级数（官方默认 3）
+  stm_geomattn_dropout: 0.5 # 几何注意力 QKV 投影 dropout（官方默认 0.5）
+  stm_requires_grad: true   # true = 小波滤波器可学习（官方默认 True）
+  stm_kernel_size: null     # 非 null 时用随机初始化滤波器替代 pywt 小波（官方默认 None）
+
+patchmlp:
+  pml_decomp_kernel: 13    # embedding 维分解滑窗；官方 model/PatchMLP.py 硬编码 series_decomp(13)
+  pml_patch_lens: [48, 24, 12, 6]  # 多尺度 patch 长度（步长恒为各自一半）；官方硬编码，配 seq96 恰好整除
+
+timemixer:
+  tmx_down_sampling_layers: 3     # 多尺度下采样层数（官方 argparse 默认 0；unify 配方 20 格全 3）
+  tmx_down_sampling_window: 2     # 下采样窗口（官方 argparse 默认 1；unify 配方全 2）
+  tmx_down_sampling_method: avg   # 下采样方式 avg/max/conv（官方默认 avg）
+  tmx_channel_independence: 1     # 1=通道独立展平为 [B*C,T,1]（官方默认 1）
+  tmx_decomp_method: moving_avg   # PDM 分解方式 moving_avg/dft_decomp（官方默认 moving_avg）
+  tmx_moving_avg: 25              # 滑动平均分解窗口（官方默认 25；moving_avg 键被 PRISM 占用故前缀化）
+  tmx_top_k: 5                    # dft_decomp 保留 top-k 频率（官方默认 5；该分支未 review 勿启用）
+  tmx_use_future_temporal_feature: 0  # 1=未来时间特征辅助解码（官方默认 0，unify 配方未启用）
+
+pathformer:
+  pf_layer_nums: 3         # AMS pathway 层数（官方默认 3，全部脚本亦为 3）
+  pf_num_nodes: 7          # 变量数，须等于 enc_in（官方默认 21；此处取 ETTh1 的 7，各 yaml 显式覆盖）
+  pf_k: 2                  # 每层路由选 Top-K 个 patch 尺度专家（官方默认 2）
+  pf_num_experts_list: [4, 4, 4]   # 每层专家数（官方默认，脚本从不覆盖；须与每层 patch 数一致）
+  pf_patch_size_list: [16, 12, 8, 32, 12, 8, 6, 4, 8, 6, 4, 2]  # 扁平列表，模型内 reshape 成 (layer_nums, -1)
+  pf_residual_connection: 0        # AMS 层残差连接开关 0/1（官方默认 0）
+  pf_revin: true           # RevIN 归一化（官方默认 1；affine=False, subtract_last=False）
+  pf_batch_norm: false     # Transformer_Layer 内 BatchNorm（官方默认 0，全部脚本亦为 0）
+
+timefilter:
+  tfil_alpha: 0.1          # KNN 图构建保留比例（官方 --alpha 默认 0.1；moe 损失权重 0.05 硬编码于模型 aux_loss，两者无关）
+  tfil_top_p: 0.5          # MoE 动态路由累计概率阈值（官方 --top_p 默认 0.5；0.0 = 关闭 mask MoE 及其正则）
+  tfil_pos: true           # patch 嵌入正弦位置编码开关（官方 --pos 默认 1；ETTh1 官方配方置 0）
+
+timemosaic:
+  tms_patch_len_list: [8, 16, 32]  # 自适应 patch 候选粒度（官方默认；须 max 整除 seq_len、min 整除 max）
+  tms_num_latent_token: 4  # 每段 prompt token 数（官方默认 4）
+  tms_channel: CI          # 通道/日历信息注入方式 CI/CD/CDP/CDA/CI+（官方默认 CI，脚本逐格覆盖）
+  tms_lambda_cls: 0.001    # 粒度选择比例正则权重（官方 exp 非 AMP 分支 0.001，经 aux_loss 通路生效）
+  tms_mask_ratio: 0.0      # 输入重构 mask 比例（官方默认 0；重构分支未移植，>0 时构造报错）
+  tms_pre96: 32            # pred_len=96 的分段解码段长（官方默认 32）
+  tms_pre192: 64           # pred_len=192 段长（官方默认 64）
+  tms_pre336: 168          # pred_len=336 段长（官方默认 168）
+  tms_pre720: 240          # pred_len=720 段长（官方默认 240）
+  tms_pre12: 6             # 其他 pred_len 的兜底段长（官方默认 6）
+
 system:
   use_gpu: true
   gpu: 0

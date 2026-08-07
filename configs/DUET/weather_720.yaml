@@ -1,0 +1,23 @@
+# DUET / weather / 96 -> 720（官方 scripts/multivariate_forecast/DUET_unified_seq_len_96.sh L29；脚本未写 fc_dropout，取官方 duet.py 默认 0.2）
+basic:
+  model: DUET
+  model_id: DUET_weather_96_720
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 720
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  d_ff: 1024
+  factor: 3
+
+training:
+  train_epochs: 100
+  patience: 5
+  learning_rate: 0.001
+  loss: MAE
+  lradj: type3

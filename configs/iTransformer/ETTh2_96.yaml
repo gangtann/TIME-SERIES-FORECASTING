@@ -1,0 +1,17 @@
+# iTransformer / ETTh2 / 96 -> 96（官方 scripts/multivariate_forecasting/ETT/iTransformer_ETTh2.sh；脚本未写的训练超参 = 官方 run.py argparse 默认）
+basic:
+  model: iTransformer
+  model_id: iTransformer_ETTh2_96_96
+
+data:
+  data: ETTh2
+  data_path: ETTh2.csv
+  pred_len: 96
+
+model:
+  d_model: 128
+  d_ff: 128
+  e_layers: 2
+
+training:
+  train_epochs: 10

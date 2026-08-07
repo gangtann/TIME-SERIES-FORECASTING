@@ -1,0 +1,20 @@
+# iTransformer / weather / 96 -> 336（官方 scripts/multivariate_forecasting/Weather/iTransformer.sh；脚本未写的训练超参 = 官方 run.py argparse 默认）
+basic:
+  model: iTransformer
+  model_id: iTransformer_weather_96_336
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 336
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  d_model: 512
+  d_ff: 512
+  e_layers: 3
+
+training:
+  train_epochs: 10

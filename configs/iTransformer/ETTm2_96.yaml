@@ -1,0 +1,19 @@
+# iTransformer / ETTm2 / 96 -> 96（官方 scripts/multivariate_forecasting/ETT/iTransformer_ETTm2.sh；脚本未写的训练超参 = 官方 run.py argparse 默认）
+# freq 按本框架数据协议取 t（官方脚本用 run.py 默认 h，协变量 token 数 5 vs 4）
+basic:
+  model: iTransformer
+  model_id: iTransformer_ETTm2_96_96
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  freq: t
+  pred_len: 96
+
+model:
+  d_model: 128
+  d_ff: 128
+  e_layers: 2
+
+training:
+  train_epochs: 10

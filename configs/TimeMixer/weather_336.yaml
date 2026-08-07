@@ -1,0 +1,27 @@
+# TimeMixer / weather / 96 -> 336（官方配方 scripts/long_term_forecast/Weather_script/TimeMixer_unify.sh；
+# 脚本未写键取官方 run.py argparse 默认：lradj=TST、pct_start=0.2、dropout=0.1、label_len=0）
+basic:
+  model: TimeMixer
+  model_id: TimeMixer_weather_96_336
+
+data:
+  data: custom
+  data_path: weather.csv
+  label_len: 0
+  pred_len: 336
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  d_model: 16
+  d_ff: 32
+  e_layers: 3
+
+training:
+  batch_size: 128
+  learning_rate: 0.01
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 20
+  patience: 10

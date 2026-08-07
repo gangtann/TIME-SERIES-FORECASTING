@@ -1,0 +1,23 @@
+# DUET / ETTh1 / 96 -> 96（官方 scripts/multivariate_forecast/DUET_unified_seq_len_96.sh L2）
+basic:
+  model: DUET
+  model_id: DUET_ETTh1_96_96
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+  pred_len: 96
+
+model:
+  d_ff: 512
+  factor: 3
+
+training:
+  train_epochs: 100
+  patience: 5
+  learning_rate: 0.0005
+  loss: MAE
+  lradj: type3
+
+duet:
+  duet_fc_dropout: 0.1

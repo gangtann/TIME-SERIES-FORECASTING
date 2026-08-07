@@ -1,0 +1,27 @@
+# DUET / ETTm2 / 96 -> 96（官方 scripts/multivariate_forecast/DUET_unified_seq_len_96.sh L20；脚本未写 dropout/fc_dropout，取官方 duet.py 默认 0.2/0.2）
+basic:
+  model: DUET
+  model_id: DUET_ETTm2_96_96
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  pred_len: 96
+
+model:
+  d_model: 128
+  d_ff: 512
+  e_layers: 1
+  n_heads: 1
+  factor: 3
+  dropout: 0.2
+
+training:
+  train_epochs: 100
+  patience: 5
+  learning_rate: 0.0005
+  loss: MAE
+  lradj: type3
+
+duet:
+  duet_hidden_size: 512

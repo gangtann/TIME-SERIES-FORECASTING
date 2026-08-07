@@ -1,0 +1,27 @@
+# SimpleTM / ETTm2 / 96 -> 192（官方 scripts/multivariate_forecasting/ETT/SimpleTM_m2.sh 第2段(L33-60)；lradj TST + pct_start 0.2 / epochs 10 / patience 3 为官方 run.py 默认）
+basic:
+  model: SimpleTM
+  model_id: SimpleTM_ETTm2_96_192
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  pred_len: 192
+
+model:
+  d_model: 32
+  d_ff: 32
+  e_layers: 1
+
+training:
+  batch_size: 256
+  learning_rate: 0.006
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+
+simpletm:
+  stm_alpha: 0.0
+  stm_l1_weight: 0.005
+  stm_wv: bior3.1
+  stm_m: 1

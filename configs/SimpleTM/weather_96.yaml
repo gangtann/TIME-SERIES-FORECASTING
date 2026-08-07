@@ -1,0 +1,30 @@
+# SimpleTM / weather / 96 -> 96（官方 scripts/multivariate_forecasting/Weather/SimpleTM.sh 第1段(L4-31)；lradj TST + pct_start 0.2 / epochs 10 / patience 3 为官方 run.py 默认）
+basic:
+  model: SimpleTM
+  model_id: SimpleTM_weather_96_96
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 96
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  d_model: 32
+  d_ff: 32
+  e_layers: 4
+
+training:
+  batch_size: 256
+  learning_rate: 0.01
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+
+simpletm:
+  stm_alpha: 0.3
+  stm_l1_weight: 0.00005
+  stm_wv: db4
+  stm_m: 1

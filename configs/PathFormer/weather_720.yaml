@@ -1,0 +1,31 @@
+# PathFormer / weather / 96 -> 720（官方配方 scripts/multivariate/weather.sh（四个 pred 同配方）；损失 nn.L1Loss -> MAE）
+basic:
+  model: PathFormer
+  model_id: PathFormer_weather_96_720
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 720
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  d_model: 8
+  d_ff: 64
+
+pathformer:
+  pf_num_nodes: 21
+  pf_k: 2
+  pf_patch_size_list: [16, 12, 8, 4, 12, 8, 6, 4, 8, 6, 2, 12]
+  pf_residual_connection: 1
+
+training:
+  train_epochs: 30
+  batch_size: 256
+  patience: 10
+  learning_rate: 0.001
+  loss: MAE
+  lradj: TST
+  pct_start: 0.4

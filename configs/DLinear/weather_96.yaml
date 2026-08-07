@@ -1,0 +1,18 @@
+# DLinear / weather / 96 -> 96（官方配方: scripts/EXP-LongForecasting/Linear/weather.sh；lr 为 run_longExp.py 默认）
+# 官方协议 seq_len=336，此处按本框架 seq96 统一协议，仅沿用官方其余超参
+basic:
+  model: DLinear
+  model_id: DLinear_weather_96_96
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 96
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+training:
+  batch_size: 16
+  learning_rate: 0.0001
+  train_epochs: 10          # 官方 run_longExp.py argparse 默认（patience/lradj/loss 同 default）

@@ -1,0 +1,21 @@
+# PatchMLP / ETTh1 / 96 -> 720（模型与训练配方: DUET 仓库第三方配方
+# scripts/multivariate_forecast/ETTh1_script/PatchMLP.sh 的 horizon=720 条目，其 seq_len=336，
+# 此处按本框架 seq96 协议；配方中 norm=true 即 default 的 use_norm；其余未列键=官方 run.py 默认）
+basic:
+  model: PatchMLP
+  model_id: PatchMLP_ETTh1_96_720
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+  pred_len: 720
+
+model:
+  d_model: 1024             # DUET 配方
+  e_layers: 1               # DUET 配方
+
+training:
+  batch_size: 64            # DUET 配方
+  learning_rate: 0.0001     # DUET 配方
+  train_epochs: 20          # 官方 run.py 默认
+  patience: 5               # 官方 run.py 默认

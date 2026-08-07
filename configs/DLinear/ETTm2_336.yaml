@@ -1,0 +1,15 @@
+# DLinear / ETTm2 / 96 -> 336（官方配方: scripts/EXP-LongForecasting/Linear/ettm2.sh）
+# 官方协议 seq_len=336，此处按本框架 seq96 统一协议，仅沿用官方其余超参
+basic:
+  model: DLinear
+  model_id: DLinear_ETTm2_96_336
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  pred_len: 336
+
+training:
+  batch_size: 32
+  learning_rate: 0.01
+  train_epochs: 10          # 官方 run_longExp.py argparse 默认（patience/lradj/loss 同 default）

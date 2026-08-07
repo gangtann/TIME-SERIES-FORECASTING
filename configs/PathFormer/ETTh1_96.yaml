@@ -1,0 +1,28 @@
+# PathFormer / ETTh1 / 96 -> 96（官方配方 scripts/multivariate/ETTh1.sh pred96 段；损失 nn.L1Loss -> MAE）
+basic:
+  model: PathFormer
+  model_id: PathFormer_ETTh1_96_96
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+  pred_len: 96
+
+model:
+  d_model: 4
+  d_ff: 64
+
+pathformer:
+  pf_num_nodes: 7
+  pf_k: 3
+  pf_patch_size_list: [16, 12, 8, 32, 12, 8, 6, 4, 8, 6, 4, 2]
+  pf_residual_connection: 1
+
+training:
+  train_epochs: 30
+  batch_size: 128
+  patience: 10
+  learning_rate: 0.0005
+  loss: MAE
+  lradj: TST
+  pct_start: 0.4

@@ -1,0 +1,26 @@
+# TimeMosaic / weather / 96 -> 96（超参对齐官方仓库 BenchCouncil/TimeMosaic scripts/TimeMosaic/Weather.sh；
+# 官方协议为 seq_len=320，此处按本框架统一 seq96 评测协议，其余结构/训练参数照官方；
+# 官方 Exp_TimeMosaic 训练主损失硬编码 nn.L1Loss，故 training.loss: MAE）
+basic:
+  model: TimeMosaic
+  model_id: TimeMosaic_weather_96_96
+
+data:
+  data: custom
+  data_path: weather.csv
+  pred_len: 96
+  enc_in: 21
+  dec_in: 21
+  c_out: 21
+
+model:
+  e_layers: 3
+  n_heads: 1
+  factor: 3
+
+training:
+  train_epochs: 10
+  loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）
+
+timemosaic:
+  tms_channel: CDA   # 官方脚本 --channel CDA

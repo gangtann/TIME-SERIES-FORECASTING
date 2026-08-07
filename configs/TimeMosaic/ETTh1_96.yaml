@@ -1,0 +1,20 @@
+# TimeMosaic / ETTh1 / 96 -> 96（超参对齐官方仓库 BenchCouncil/TimeMosaic scripts/TimeMosaic/ETTh1.sh；
+# 官方协议为 seq_len=320，此处按本框架统一 seq96 评测协议，其余结构/训练参数照官方；
+# 官方 Exp_TimeMosaic 训练主损失硬编码 nn.L1Loss，故 training.loss: MAE）
+basic:
+  model: TimeMosaic
+  model_id: TimeMosaic_ETTh1_96_96
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+  pred_len: 96
+
+model:
+  e_layers: 2
+  n_heads: 8
+  factor: 3
+
+training:
+  train_epochs: 10
+  loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）

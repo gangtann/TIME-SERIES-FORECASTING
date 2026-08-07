@@ -1,0 +1,28 @@
+# PathFormer / ETTh2 / 96 -> 192（官方配方 scripts/multivariate/ETTh2.sh pred192 段；损失 nn.L1Loss -> MAE）
+basic:
+  model: PathFormer
+  model_id: PathFormer_ETTh2_96_192
+
+data:
+  data: ETTh2
+  data_path: ETTh2.csv
+  pred_len: 192
+
+model:
+  d_model: 8
+  d_ff: 64
+
+pathformer:
+  pf_num_nodes: 7
+  pf_k: 2
+  pf_patch_size_list: [16, 12, 8, 32, 12, 8, 6, 4, 8, 6, 4, 2]
+  pf_residual_connection: 0
+
+training:
+  train_epochs: 30
+  batch_size: 512
+  patience: 10
+  learning_rate: 0.0005
+  loss: MAE
+  lradj: TST
+  pct_start: 0.4

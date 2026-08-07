@@ -1,0 +1,25 @@
+# TimeMixer / ETTh2 / 96 -> 720（官方配方 scripts/long_term_forecast/ETT_script/TimeMixer_ETTh2_unify.sh；
+# 脚本未写键取官方 run.py argparse 默认：lradj=TST、pct_start=0.2、dropout=0.1、label_len=0）
+# batch/epochs/patience 官方脚本未传，取官方 run.py 默认 16/100/15
+basic:
+  model: TimeMixer
+  model_id: TimeMixer_ETTh2_96_720
+
+data:
+  data: ETTh2
+  data_path: ETTh2.csv
+  label_len: 0
+  pred_len: 720
+
+model:
+  d_model: 16
+  d_ff: 32
+  e_layers: 2
+
+training:
+  batch_size: 16
+  learning_rate: 0.01
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 100
+  patience: 15
