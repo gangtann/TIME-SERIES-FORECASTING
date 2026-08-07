@@ -35,8 +35,17 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return model_optim
 
     def _select_criterion(self):
-        criterion = nn.MSELoss()
-        return criterion
+        # 训练损失可切换（training.loss）；验证/早停恒用 MSE，保证模型选择口径不变
+        name = str(self.args.loss).lower()
+        if name in ('mse', 'l2'):
+            return nn.MSELoss()
+        if name in ('mae', 'l1'):
+            return nn.L1Loss()
+        if name == 'huber':
+            return nn.HuberLoss(delta=1.0)
+        if name == 'smooth_l1':
+            return nn.SmoothL1Loss()
+        raise ValueError(f'unknown training loss: {self.args.loss}')
 
     def _forward(self, batch_x, batch_y, batch_x_mark, batch_y_mark):
         batch_x = batch_x.float().to(self.device)
@@ -53,14 +62,19 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
         else:
             outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-        return outputs, batch_y
+
+        # 模型可返回 (outputs, aux_loss) 元组携带内部正则项（如路由熵）；仅训练时使用
+        aux_loss = None
+        if isinstance(outputs, tuple):
+            outputs, aux_loss = outputs
+        return outputs, batch_y, aux_loss
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
         self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(vali_loader):
-                outputs, batch_y = self._forward(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                outputs, batch_y, _ = self._forward(batch_x, batch_y, batch_x_mark, batch_y_mark)
 
                 f_dim = -1 if self.args.features == 'MS' else 0
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
@@ -89,6 +103,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
+        vali_criterion = nn.MSELoss()   # 与 loss 开关解耦：早停/模型选择恒按 MSE
 
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
@@ -112,12 +127,20 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 iter_count += 1
                 model_optim.zero_grad()
 
-                outputs, batch_y = self._forward(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                outputs, batch_y, aux_loss = self._forward(batch_x, batch_y, batch_x_mark, batch_y_mark)
 
                 f_dim = -1 if self.args.features == 'MS' else 0
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
                 batch_y = batch_y[:, -self.args.pred_len:, f_dim:]
-                loss = criterion(outputs, batch_y)
+                if self.args.auxi_lambda > 0:
+                    # FreDF 式频域辅助损失（wang2025fredf）；早停/验证仍用纯 MSE
+                    freq_diff = torch.fft.rfft(outputs, dim=1) - torch.fft.rfft(batch_y, dim=1)
+                    loss = (self.args.rec_lambda * criterion(outputs, batch_y)
+                            + self.args.auxi_lambda * freq_diff.abs().mean())
+                else:
+                    loss = criterion(outputs, batch_y)
+                if aux_loss is not None:
+                    loss = loss + aux_loss
                 train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
@@ -142,8 +165,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
-            vali_loss = self.vali(vali_data, vali_loader, criterion)
-            test_loss = self.vali(test_data, test_loader, criterion)
+            vali_loss = self.vali(vali_data, vali_loader, vali_criterion)
+            test_loss = self.vali(test_data, test_loader, vali_criterion)
 
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
@@ -179,7 +202,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(test_loader):
-                outputs, batch_y = self._forward(batch_x, batch_y, batch_x_mark, batch_y_mark)
+                outputs, batch_y, _ = self._forward(batch_x, batch_y, batch_x_mark, batch_y_mark)
 
                 f_dim = -1 if self.args.features == 'MS' else 0
                 outputs = outputs[:, -self.args.pred_len:, :]
