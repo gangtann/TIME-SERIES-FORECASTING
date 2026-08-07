@@ -8,10 +8,9 @@
     attns，且 configs.output_attention 键不存在），FullAttention 恒 output_attention=False。
   - 官方 configs.class_strategy 只存不用（projection 头硬编码），未引入该键。
   - use_norm 读本框架 model 节共享键 configs.use_norm（官方 run.py 默认 True）。
-  - Encoder/EncoderLayer/FullAttention/AttentionLayer 复用本框架 layers/ 内文件
-    （与官方逐行等价：EncoderLayer 完全一致；Encoder 少 conv_layers 参数但官方此处
-    传 None，两分支行为一致；FullAttention 仅 mask 分支实现不同且 mask_flag=False 不触达）；
-    DataEmbedding_inverted 本框架缺失，自带于 layers/iTransformer_layers.py。
+  - 全部依赖层（DataEmbedding_inverted/Encoder/EncoderLayer/FullAttention/
+    AttentionLayer）自包含于 layers/iTransformer_layers.py（与官方逐行等价，
+    差异见该文件头注释）。
   - x_dec/x_mark_dec 官方即不使用，签名保留；x_mark_enc 照官方作为协变量 token 拼入嵌入，
     投影后 [:, :, :N] 截掉协变量通道。
   - 无内部辅助损失，无 device 硬编码（官方模型文件本就干净）。
@@ -19,9 +18,8 @@
 import torch
 from torch import nn
 
-from layers.iTransformer_layers import DataEmbedding_inverted
-from layers.SelfAttention_Family import AttentionLayer, FullAttention
-from layers.Transformer_EncDec import Encoder, EncoderLayer
+from layers.iTransformer_layers import (AttentionLayer, DataEmbedding_inverted,
+                                        Encoder, EncoderLayer, FullAttention)
 
 
 class Model(nn.Module):

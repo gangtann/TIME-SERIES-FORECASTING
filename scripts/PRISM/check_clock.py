@@ -12,7 +12,7 @@ import torch
 sys.path.insert(0, '.')
 from utils.config import load_config                       # noqa: E402
 from models.PRISM import Model                             # noqa: E402
-from layers.PRISM_blocks import InfoClockPatchEmbedding    # noqa: E402
+from layers.PRISM_layers import InfoClockPatchEmbedding    # noqa: E402
 
 torch.manual_seed(2021)
 ARGS = ['-c', 'configs/PRISM/smoke.yaml']

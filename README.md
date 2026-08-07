@@ -132,8 +132,8 @@ data_provider/
 exp/
   exp_basic.py               # device selection, model registry
   exp_long_term_forecasting.py  # train/val/test loops
-layers/                      # PatchEmbedding, Attention, Encoder, RevIN, Decomp, PRISM_blocks
-                             # + one self-contained <X>_layers.py per ported baseline
+layers/                      # one self-contained <X>_layers.py per model — no shared
+                             # layer files (DLinear is simple enough to need none)
 models/
   __init__.py                # MODEL_REGISTRY
   PatchTST.py
@@ -165,6 +165,8 @@ scripts/                     # batch runners, e.g. scripts/PatchTST/ETTh1.sh run
 **Add a model**: create `models/X.py` exposing `class Model(nn.Module)` with
 signature `forward(x_enc, x_mark_enc, x_dec, x_mark_dec) -> [B, pred_len, c_out]`;
 register it in `MODEL_REGISTRY` in `models/__init__.py`; add configs under `configs/X/`.
+Helper layers go in a self-contained `layers/X_layers.py` — never in shared files,
+even at the cost of duplicated classes (module namespacing keeps them isolated).
 
 **Add a dataset**: a CSV with a `date` column works with `data: custom` and zero
 code; for other formats add a `Dataset_*` class in `data_provider/data_loader.py`

@@ -1,9 +1,8 @@
 import torch
 from torch import nn
 
-from layers.Decomp import EMADecomp, MovingAvgDecomp
-from layers.PRISM_blocks import SpectralAffinityRouter, HeteroGraphFilter, InfoClockBackbone
-from layers.RevIN import RevIN
+from layers.PRISM_layers import (EMADecomp, HeteroGraphFilter, InfoClockBackbone,
+                                 MovingAvgDecomp, RevIN, SpectralAffinityRouter)
 
 
 class Model(nn.Module):

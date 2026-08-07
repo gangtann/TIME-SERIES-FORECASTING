@@ -4,17 +4,40 @@
   - layers/TimeFilter_layers.py（GCN / mask_moe / mask_topk / GraphLearner /
     GraphFilter / GraphBlock / TimeFilter_Backbone，逐行照搬）
   - layers/StandardNorm.py（Normalize，逐行照搬）
+  - layers/Embed.py（PositionalEmbedding，逐行照搬）
 移植改动：
   - 官方文件中标注 "Ablation" 的 mask_topk_moe / mask_topk_area 两个函数不在
     forward 路径上（GraphLearner 只用 mask_topk + mask_moe），未搬入。
-  - PositionalEmbedding 与本框架 layers/Embed.py 逐行等价，直接复用（由
-    models/TimeFilter.py 导入），不在本文件重复。
   - 其余逻辑（含 mask_moe 内 masks=None 的兜底重建分支）保持官方原样；本框架
     调用时 masks 恒为模型 __init__ 预构建的 buffer，兜底分支不会触发。
+本目录约定：每个模型一个自包含 <X>_layers.py，无跨模型公共层文件。
 """
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+
+class PositionalEmbedding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEmbedding, self).__init__()
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model).float()
+        pe.require_grad = False
+
+        position = torch.arange(0, max_len).float().unsqueeze(1)
+        div_term = (torch.arange(0, d_model, 2).float()
+                    * -(math.log(10000.0) / d_model)).exp()
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        return self.pe[:, :x.size(1)]
 
 
 class Normalize(nn.Module):

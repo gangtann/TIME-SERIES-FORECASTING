@@ -114,8 +114,8 @@ data_provider/
 exp/
   exp_basic.py               # 设备选择、模型注册表
   exp_long_term_forecasting.py  # 训练/验证/测试循环
-layers/                      # PatchEmbedding、Attention、Encoder、RevIN、Decomp、PRISM_blocks
-                             # + 每个移植 baseline 一个自包含的 <X>_layers.py
+layers/                      # 每模型一个自包含的 <X>_layers.py，无跨模型公共层文件
+                             # （DLinear 足够简单，无 layers 文件）
 models/
   __init__.py                # MODEL_REGISTRY
   PatchTST.py
@@ -142,6 +142,8 @@ scripts/                     # 批量运行脚本，如 scripts/PatchTST/ETTh1.s
 **加模型**：新建 `models/X.py`，暴露 `class Model(nn.Module)`，签名
 `forward(x_enc, x_mark_enc, x_dec, x_mark_dec) -> [B, pred_len, c_out]`；
 在 `models/__init__.py` 的 `MODEL_REGISTRY` 注册；建 `configs/X/` 放实验配置。
+辅助层放自包含的 `layers/X_layers.py`——不进公共文件，宁可重复类
+（模块命名空间天然隔离）。
 
 **加数据集**：带 `date` 列的 CSV 直接 `data: custom` 零代码接入；
 其他格式在 `data_provider/data_loader.py` 新增 `Dataset_*` 类

@@ -33,16 +33,15 @@ Forecasting (ICML 2025).
 import torch
 from torch import nn
 
-from layers.Embed import PositionalEmbedding
-from layers.TimeFilter_layers import Normalize, TimeFilter_Backbone
+from layers.TimeFilter_layers import Normalize, PositionalEmbedding, TimeFilter_Backbone
 
 
 class PatchEmbed(nn.Module):
     """官方 models/TimeFilter.py 的 PatchEmbed，逐行照搬。
 
     输入 [B, C*T] 的展平序列，unfold 成 [B, C*T/P, P] 后线性投影到 d_model，
-    可选加正弦位置编码（PositionalEmbedding 与本框架 layers/Embed.py 逐行等价，
-    直接复用；官方以 max_len=10000 实例化）。
+    可选加正弦位置编码（PositionalEmbedding 自包含于 layers/TimeFilter_layers.py，
+    与官方逐行等价；官方以 max_len=10000 实例化）。
     """
 
     def __init__(self, dim, patch_len, stride=None, pos=True):
