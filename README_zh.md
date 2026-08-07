@@ -2,10 +2,10 @@
 
 [English](README.md) | 简体中文
 
-最小可运行的时间序列长期预测框架。当前支持 **PatchTST** 与 **PRISM**（开发中的
-研究模型），数据集覆盖 ETT×4、Electricity、Traffic、Weather、Exchange、Illness、
-Solar、PEMS×4 以及任意带 `date` 列的自定义 CSV。参考 Time-Series-Library /
-PatchTST 系项目实现。
+最小可运行的时间序列长期预测框架。内置 **PRISM**（开发中的研究模型）、
+**PatchTST** 与十个从官方仓库移植的 baseline（见"模型"一节），数据集覆盖
+ETT×4、Electricity、Traffic、Weather、Exchange、Illness、Solar、PEMS×4
+以及任意带 `date` 列的自定义 CSV。参考 Time-Series-Library / PatchTST 系项目实现。
 
 ## 快速开始
 
@@ -53,6 +53,29 @@ python run.py -c checkpoints/ETTh1_96_96_exp_0/config.yaml
 
 **PatchTST** — 忠实复现；随附配置对齐官方仓库配方（见上）。
 
+**移植 baseline** — 十个模型自官方仓库移植，每个为 `models/<X>.py`（+ 自包含的
+`layers/<X>_layers.py`），`configs/<X>/` 下按官方最优超参逐格配置，
+`scripts/<X>/run_full.sh` 一键批跑。评测协议（切分/标准化/指标/`drop_last=False`/
+按验证集 MSE 早停）用本框架的；模型结构与训练配方（损失、LR 调度、epochs）对齐
+各官方仓库。模型专属配置键放在 `configs/default.yaml` 带前缀的专属节（如
+`xp_*`、`duet_*`）；内部正则项经 `(outputs, aux_loss)` 元组通路进训练损失。
+出处（按 `MODEL_REGISTRY` 顺序）：
+
+| 模型 | 会议 | 官方仓库 | 协议备注 |
+|---|---|---|---|
+| DLinear | AAAI 2023 | cure-lab/LTSF-Linear | 官方配方 seq_len 336，此处按 seq96 跑 |
+| DUET | KDD 2025 | decisionintelligence/DUET | unified seq96 配方；MAE 训练损失 |
+| PatchMLP | AAAI 2025 | TangPeiwang/PatchMLP | 官方脚本残缺，配方取自 DUET 仓库的 PatchMLP 脚本 |
+| PathFormer | ICLR 2024 | decisionintelligence/pathformer | MAE 训练损失；balance 辅助损失 |
+| SimpleTM | ICLR 2025 | vsingh-group/SimpleTM | 逐 pred_len 配方；需 `pywt` |
+| TimeFilter | ICML 2025 | TROUBADOUR000/TimeFilter | `lradj: cosine2`（官方 lr/2 余弦）；moe 辅助损失 |
+| TimeMixer | ICLR 2024 | kwuking/TimeMixer | "unify" seq96 配方 |
+| TimeMosaic | AAAI 2026 | BenchCouncil/TimeMosaic | 官方配方 seq_len 320，此处按 seq96 跑 |
+| iTransformer | ICLR 2024 | thuml/iTransformer | 完全兼容的移植 |
+| xPatch | AAAI 2025 | stitsyuk/xPatch | `loss: arctan_mae` + `lradj: sigmoid`（官方协议）；本框架 `drop_last=False` 对应其论文 "fair" 表 |
+
+额外 pip 依赖：`einops`（DUET、PathFormer）、`PyWavelets`（SimpleTM）。
+
 **PRISM** — 研究模型（频域引导的自适应 patch + 谱关系建模）。数据流：RevIN →
 趋势/季节分解；趋势走线性头，季节分支计算幅度谱，与可学习的谱模式字典做亲和
 匹配（FAP 路由），经跨通道异构图谱滤波（SRM）后送入**谱驱动信息时钟自适应
@@ -92,10 +115,12 @@ exp/
   exp_basic.py               # 设备选择、模型注册表
   exp_long_term_forecasting.py  # 训练/验证/测试循环
 layers/                      # PatchEmbedding、Attention、Encoder、RevIN、Decomp、PRISM_blocks
+                             # + 每个移植 baseline 一个自包含的 <X>_layers.py
 models/
   __init__.py                # MODEL_REGISTRY
   PatchTST.py
   PRISM.py
+  <X>.py                     # 十个移植 baseline（见"模型"一节）
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # 数据文件（见 dataset/README.md）
 docs/                        # 笔记文档，如公开 baseline seq96 对照数字

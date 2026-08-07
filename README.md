@@ -2,11 +2,12 @@
 
 English | [简体中文](README_zh.md)
 
-A minimal, runnable long-term time series forecasting framework. Currently ships
-**PatchTST** and **PRISM** (a research model under development), with dataset
-coverage of ETT×4, Electricity, Traffic, Weather, Exchange, Illness, Solar,
-PEMS×4, plus any custom CSV with a `date` column.
-Implementation references Time-Series-Library / PatchTST-family projects.
+A minimal, runnable long-term time series forecasting framework. Ships
+**PRISM** (a research model under development), **PatchTST**, and ten ported
+baselines (see Models below), with dataset coverage of ETT×4, Electricity,
+Traffic, Weather, Exchange, Illness, Solar, PEMS×4, plus any custom CSV with a
+`date` column. Implementation references Time-Series-Library / PatchTST-family
+projects.
 
 ## Quick Start
 
@@ -60,6 +61,32 @@ or `model_id`, otherwise the same-named directory gets overwritten.
 **PatchTST** — faithful reimplementation; shipped configs follow the official
 repo recipes (see above).
 
+**Ported baselines** — ten models ported from their official repositories, each
+as `models/<X>.py` (+ self-contained `layers/<X>_layers.py`), with per-grid
+configs under `configs/<X>/` following the official best hyperparameters and a
+`scripts/<X>/run_full.sh` batch runner. The evaluation protocol (splits /
+scaling / metrics / `drop_last=False` / early stopping on validation MSE) is
+this framework's; model architecture and training recipes (loss, LR schedule,
+epochs) follow each official repo. Model-specific config keys live in prefixed
+sections of `configs/default.yaml` (e.g. `xp_*`, `duet_*`); internal
+regularizers flow through the `(outputs, aux_loss)` tuple. Sources, in the
+order of `MODEL_REGISTRY`:
+
+| Model | Venue | Official repo | Protocol notes |
+|---|---|---|---|
+| DLinear | AAAI 2023 | cure-lab/LTSF-Linear | official recipe uses seq_len 336; run here at seq96 |
+| DUET | KDD 2025 | decisionintelligence/DUET | unified seq96 recipe; MAE training loss |
+| PatchMLP | AAAI 2025 | TangPeiwang/PatchMLP | official scripts incomplete; recipes taken from the DUET repo's PatchMLP scripts |
+| PathFormer | ICLR 2024 | decisionintelligence/pathformer | MAE training loss; balance aux loss |
+| SimpleTM | ICLR 2025 | vsingh-group/SimpleTM | per-horizon recipes; needs `pywt` |
+| TimeFilter | ICML 2025 | TROUBADOUR000/TimeFilter | `lradj: cosine2` (official lr/2 cosine); moe aux loss |
+| TimeMixer | ICLR 2024 | kwuking/TimeMixer | "unify" seq96 recipes |
+| TimeMosaic | AAAI 2026 | BenchCouncil/TimeMosaic | official recipe uses seq_len 320; run here at seq96 |
+| iTransformer | ICLR 2024 | thuml/iTransformer | fully compatible port |
+| xPatch | AAAI 2025 | stitsyuk/xPatch | `loss: arctan_mae` + `lradj: sigmoid` (official protocol); our `drop_last=False` matches its "fair" table |
+
+Extra pip dependencies: `einops` (DUET, PathFormer), `PyWavelets` (SimpleTM).
+
 **PRISM** — research model (frequency-guided adaptive patching + spectral
 relational modeling). Pipeline: RevIN → trend/season decomposition; the trend
 goes through a linear head, while the season branch computes its amplitude
@@ -106,10 +133,12 @@ exp/
   exp_basic.py               # device selection, model registry
   exp_long_term_forecasting.py  # train/val/test loops
 layers/                      # PatchEmbedding, Attention, Encoder, RevIN, Decomp, PRISM_blocks
+                             # + one self-contained <X>_layers.py per ported baseline
 models/
   __init__.py                # MODEL_REGISTRY
   PatchTST.py
   PRISM.py
+  <X>.py                     # ten ported baselines (see Models)
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # data files (see dataset/README.md)
 docs/                        # notes, e.g. published seq96 baseline numbers
