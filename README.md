@@ -3,8 +3,9 @@
 English | [简体中文](README_zh.md)
 
 A minimal, runnable long-term time series forecasting framework. Currently ships
-**PatchTST**, with dataset coverage of ETT×4, Electricity, Traffic, Weather,
-Exchange, Illness, Solar, PEMS×4, plus any custom CSV with a `date` column.
+**PatchTST** and **PRISM** (a research model under development), with dataset
+coverage of ETT×4, Electricity, Traffic, Weather, Exchange, Illness, Solar,
+PEMS×4, plus any custom CSV with a `date` column.
 Implementation references Time-Series-Library / PatchTST-family projects.
 
 ## Quick Start
@@ -54,6 +55,42 @@ Note: run directory names no longer encode hyperparameters. When sweeping
 hyperparameters via `--set`, also change `des` (e.g. `--set d_model=256 des=dm256`)
 or `model_id`, otherwise the same-named directory gets overwritten.
 
+## Models
+
+**PatchTST** — faithful reimplementation; shipped configs follow the official
+repo recipes (see above).
+
+**PRISM** — research model (frequency-guided adaptive patching + spectral
+relational modeling). Pipeline: RevIN → trend/season decomposition; the trend
+goes through a linear head, while the season branch computes its amplitude
+spectrum, matches it against a learnable spectral pattern dictionary (FAP
+router), applies heterogeneous-graph spectral filtering across channels (SRM),
+and feeds a **spectral information-clock adaptive patching** backbone: a local
+short-time-spectrum affinity yields a per-position information density whose
+integral fires patch boundaries — dense/resonant segments get more, finer
+patches, with a fixed token budget and a strict uniform-patch degeneration
+(`clock_mode: uniform`). All PRISM hyperparameters and ablation switches
+(`clock_mode` / `clock_density` / `use_graph` / `use_srm` / `use_fusion`) live
+in the `prism` section of `configs/default.yaml`; other models ignore that
+section. Experiment configs: `configs/PRISM/*.yaml`; batch runners:
+`scripts/PRISM/*.sh`; published seq96 baseline numbers for comparison:
+`docs/baselines_seq96.md`.
+
+```bash
+python run.py -c configs/PRISM/ETTm1_96.yaml
+```
+
+Training-loss switches shared by all models (`training` section):
+
+- `loss: MSE | MAE | huber | smooth_l1` — training loss only; validation,
+  early stopping and model selection always use MSE so the protocol stays fixed;
+- `auxi_lambda` — weight of a FreDF-style frequency-domain auxiliary loss
+  (`|rfft(pred) − rfft(true)|` mean), `0` disables it; `rec_lambda` weights the
+  time-domain term when the auxiliary loss is active;
+- a model may return `(outputs, aux_loss)` from `forward` to inject internal
+  regularizers (e.g. PRISM's routing entropy / clock KL band) into the training
+  loss; the tuple is unpacked automatically and ignored at eval time.
+
 ## Project Layout
 
 ```
@@ -61,18 +98,21 @@ run.py                       # entry point
 configs/
   default.yaml               # all defaults (sectioned, commented)
   PatchTST/*.yaml            # one config per experiment, only diffs from default
+  PRISM/*.yaml
 data_provider/
   data_factory.py            # dataset registry + DataLoader construction
   data_loader.py             # Dataset_ETT_hour/_minute/_Custom/_Solar/_PEMS
 exp/
   exp_basic.py               # device selection, model registry
   exp_long_term_forecasting.py  # train/val/test loops
-layers/                      # PatchEmbedding, Attention, Encoder
+layers/                      # PatchEmbedding, Attention, Encoder, RevIN, Decomp, PRISM_blocks
 models/
   __init__.py                # MODEL_REGISTRY
   PatchTST.py
+  PRISM.py
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # data files (see dataset/README.md)
+docs/                        # notes, e.g. published seq96 baseline numbers
 scripts/                     # batch runners, e.g. scripts/PatchTST/ETTh1.sh runs all four horizons
 ```
 

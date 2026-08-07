@@ -2,9 +2,10 @@
 
 [English](README.md) | 简体中文
 
-最小可运行的时间序列长期预测框架。当前支持 **PatchTST** 模型，数据集覆盖
-ETT×4、Electricity、Traffic、Weather、Exchange、Illness、Solar、PEMS×4
-以及任意带 `date` 列的自定义 CSV。参考 Time-Series-Library / PatchTST 系项目实现。
+最小可运行的时间序列长期预测框架。当前支持 **PatchTST** 与 **PRISM**（开发中的
+研究模型），数据集覆盖 ETT×4、Electricity、Traffic、Weather、Exchange、Illness、
+Solar、PEMS×4 以及任意带 `date` 列的自定义 CSV。参考 Time-Series-Library /
+PatchTST 系项目实现。
 
 ## 快速开始
 
@@ -48,6 +49,34 @@ python run.py -c checkpoints/ETTh1_96_96_exp_0/config.yaml
 注意：目录名不再编码超参数，用 `--set` 改超参做对比实验时，请同时改 `des`
 （如 `--set d_model=256 des=dm256`）或 `model_id`，否则同名目录会被覆盖。
 
+## 模型
+
+**PatchTST** — 忠实复现；随附配置对齐官方仓库配方（见上）。
+
+**PRISM** — 研究模型（频域引导的自适应 patch + 谱关系建模）。数据流：RevIN →
+趋势/季节分解；趋势走线性头，季节分支计算幅度谱，与可学习的谱模式字典做亲和
+匹配（FAP 路由），经跨通道异构图谱滤波（SRM）后送入**谱驱动信息时钟自适应
+patch** 主干：短时谱局部亲和给出逐位置信息密度，密度积分发放 patch 边界——
+信息密集/谱共振强的片段自动获得更多更细的 patch，token 总数固定，并可严格
+退化为均匀 patch（`clock_mode: uniform`）。全部 PRISM 超参与消融开关
+（`clock_mode` / `clock_density` / `use_graph` / `use_srm` / `use_fusion`）
+集中在 `configs/default.yaml` 的 `prism` 节，其他模型不读取该节。实验配置见
+`configs/PRISM/*.yaml`；批量脚本见 `scripts/PRISM/*.sh`；公开 baseline seq96
+对照数字见 `docs/baselines_seq96.md`。
+
+```bash
+python run.py -c configs/PRISM/ETTm1_96.yaml
+```
+
+所有模型共享的训练损失开关（`training` 节）：
+
+- `loss: MSE | MAE | huber | smooth_l1` — 仅切换训练损失；验证、早停与模型
+  选择恒用 MSE，保证评测口径不变；
+- `auxi_lambda` — FreDF 式频域辅助损失权重（`|rfft(pred) − rfft(true)|` 均值），
+  `0` 为完全关闭；辅助损失开启时 `rec_lambda` 为时域项权重；
+- 模型的 `forward` 可返回 `(outputs, aux_loss)` 元组，把内部正则项（如 PRISM
+  的路由熵 / 时钟 KL 带）注入训练损失；元组自动解包，eval 阶段忽略。
+
 ## 目录结构
 
 ```
@@ -55,18 +84,21 @@ run.py                       # 入口
 configs/
   default.yaml               # 全量默认配置（分节、带注释）
   PatchTST/*.yaml            # 每实验一个配置，只写与 default 的差异
+  PRISM/*.yaml
 data_provider/
   data_factory.py            # 数据集注册表 + DataLoader 构建
   data_loader.py             # Dataset_ETT_hour/_minute/_Custom/_Solar/_PEMS
 exp/
   exp_basic.py               # 设备选择、模型注册表
   exp_long_term_forecasting.py  # 训练/验证/测试循环
-layers/                      # PatchEmbedding、Attention、Encoder
+layers/                      # PatchEmbedding、Attention、Encoder、RevIN、Decomp、PRISM_blocks
 models/
   __init__.py                # MODEL_REGISTRY
   PatchTST.py
+  PRISM.py
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # 数据文件（见 dataset/README.md）
+docs/                        # 笔记文档，如公开 baseline seq96 对照数字
 scripts/                     # 批量运行脚本，如 scripts/PatchTST/ETTh1.sh 一键跑四个预测长度
 ```
 
