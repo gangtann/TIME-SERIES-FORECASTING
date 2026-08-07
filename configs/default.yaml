@@ -56,6 +56,36 @@ training:
   auxi_lambda: 0.0         # FreDF 频域辅助损失权重；0 = 完全关闭（走原始损失路径）
   auxi_type: complex       # 频域损失形式（当前实现: complex 差的模）
 
+prism:                     # PRISM 专用超参（其他模型不读取本节）
+  n_patterns: 8            # K：谱模式字典大小
+  freq_topk: 8             # 幅度谱 top-k 稀疏化
+  smooth_sigma: 1.0        # 稀疏谱的高斯平滑带宽（0 关闭）
+  route_temp_init: 5.0     # 路由门控可学习逆温度的初始值
+  route_reg: 0.0           # 门控熵正则权重（经模型 aux loss 钩子生效）
+  use_srm: true            # 消融③: false = 完全旁路谱关系建模（异构图+谱滤波）
+  use_graph: true          # 消融④: false = 保留逐节点滤波器但无图消息传递
+  d_graph: 64              # 图节点特征维度
+  graph_layers: 1
+  use_fusion: true         # 消融⑤: false = 只用趋势分支预测
+  decomp_type: ema         # ema | moving_avg
+  decomp_alpha: 0.3        # EMA 平滑系数（decomp_type=ema）
+  moving_avg: 25           # 滑动平均窗口（decomp_type=moving_avg）
+  d_head: 128              # 预测头瓶颈宽度
+  # ---- 谱驱动信息时钟（自适应 patch 主干）----
+  clock_n_patch: 12        # patch 预算 N（token 数恒定；须整除 seq_len）
+  clock_d_v: 16            # 内容前端 conv 特征维度
+  clock_basis: 4           # 箱内余弦基个数 R（保序池化；1 = 纯均值池化消融）
+  clock_floor: 0.2         # 密度下界混合系数 λ：单箱物理宽度 ≤ L/(λN)
+  clock_reverse: true      # 反向积分锚定（最近时间步获得最强边界梯度）
+  clock_win: 16            # 短时谱滑窗宽度
+  clock_density: spectral  # 消融②: spectral=局部谱亲和驱动（论文一致）| mlp=自由密度对照
+  clock_detach_dict: false # true = 时钟不回传梯度给谱模式字典（保护 SRM 语义）
+  clock_temp_init: 5.0     # 局部亲和 softmax 可学习逆温度初始值
+  clock_mode: adaptive     # 消融①: adaptive | uniform(严格等分) | reweight_only(边界钉死)
+  clock_kl_lo: 0.0         # KL 带下界（逼迫时钟偏离均匀；0 关闭）
+  clock_kl_hi: 0.0         # KL 带上界（限制边界漂移；0 关闭）
+  clock_reg: 0.0           # KL 带正则权重（经模型 aux loss 钩子生效）
+
 system:
   use_gpu: true
   gpu: 0

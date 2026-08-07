@@ -1,0 +1,23 @@
+# PRISM / ETTm2 / 96 -> 96
+basic:
+  model: PRISM
+  model_id: PRISM_ETTm2_96_96
+
+data:
+  data: ETTm2
+  data_path: ETTm2.csv
+  pred_len: 96
+
+model:
+  d_model: 64
+  d_ff: 128
+  e_layers: 2
+  n_heads: 4
+  dropout: 0.2
+  head_dropout: 0.0
+
+training:
+  batch_size: 128
+  learning_rate: 0.0002
+  lradj: type3
+  patience: 12

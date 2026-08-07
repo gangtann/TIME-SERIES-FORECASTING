@@ -1,0 +1,27 @@
+# PRISM 本地冒烟配置（CPU 可跑）
+basic:
+  model: PRISM
+  model_id: smoke_prism
+
+data:
+  data: ETTh1
+  data_path: ETTh1.csv
+  pred_len: 96
+  num_workers: 0
+
+model:
+  d_model: 64
+  d_ff: 128
+  e_layers: 2
+  n_heads: 4
+  dropout: 0.2
+  head_dropout: 0.0
+
+training:
+  train_epochs: 1
+  batch_size: 32
+  learning_rate: 0.0002
+  patience: 3
+
+system:
+  use_gpu: false
