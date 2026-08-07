@@ -42,14 +42,15 @@ model:
   activation: gelu
   patch_len: 16
   stride: 8
+  use_norm: true           # 模型内置归一化开关（iTransformer/SimpleTM 等 baseline 读取；PatchTST/PRISM 不读）
 
 training:
   train_epochs: 30
   batch_size: 32
   patience: 3
   learning_rate: 0.0001
-  loss: MSE                # 训练损失：MSE/MAE/huber/smooth_l1；验证与早停恒用 MSE
-  lradj: type1             # type1/type2/type3/cosine/constant/TST(OneCycleLR)
+  loss: MSE                # 训练损失：MSE/MAE/huber/smooth_l1/arctan_mae(xPatch)；验证与早停恒用 MSE
+  lradj: type1             # type1/type2/type3/cosine/constant/TST(OneCycleLR)/sigmoid(xPatch)/cosine2(TimeFilter)
   pct_start: 0.3           # 仅 lradj=TST 时生效
   use_amp: false
   rec_lambda: 1.0          # 时域 MSE 权重（仅 auxi_lambda>0 时参与加权）

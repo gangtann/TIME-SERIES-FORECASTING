@@ -64,6 +64,15 @@ def adjust_learning_rate(optimizer, scheduler, epoch, args, printout=True):
         lr_adjust = {epoch: args.learning_rate if epoch < 3 else args.learning_rate * (0.9 ** ((epoch - 3) // 1))}
     elif args.lradj == 'cosine':
         lr_adjust = {epoch: args.learning_rate / 10 * (1 + math.cos(epoch / args.train_epochs * math.pi))}
+    elif args.lradj == 'cosine2':
+        # TimeFilter 官方调度（TROUBADOUR000/TimeFilter utils/tools.py）：lr/2*(1+cos)，
+        # 与上面 cosine 挡（lr/10）公式不同，勿混用
+        lr_adjust = {epoch: args.learning_rate / 2 * (1 + math.cos(epoch / args.train_epochs * math.pi))}
+    elif args.lradj == 'sigmoid':
+        # xPatch 官方调度（stitsyuk/xPatch utils/tools.py）：先 logistic 预热再平滑衰减
+        k, s, w = 0.5, 10, 10
+        lr_adjust = {epoch: args.learning_rate / (1 + math.exp(-k * (epoch - w)))
+                     - args.learning_rate / (1 + math.exp(-k / s * (epoch - w * s)))}
     elif args.lradj == 'constant':
         lr_adjust = {epoch: args.learning_rate}
     elif args.lradj == 'TST':

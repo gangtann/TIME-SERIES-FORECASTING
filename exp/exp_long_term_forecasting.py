@@ -1,4 +1,5 @@
 import csv
+import math
 import os
 import time
 import warnings
@@ -16,6 +17,25 @@ from utils.metrics import metric
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
 
 warnings.filterwarnings('ignore')
+
+
+class ArctanMAELoss(nn.Module):
+    """xPatch 官方 arctan 逐 horizon 加权 MAE（stitsyuk/xPatch exp/exp_main.py）。
+
+    ratio_i = -atan(i+1) + π/4 + 1（i 从 0 起，首步恰为 1，远端衰减到 1-π/4），
+    对 pred 与 true 同乘权重后取 L1。官方实现硬编码 .to('cuda')，此处跟随输入设备。
+    """
+
+    def __init__(self, pred_len):
+        super().__init__()
+        ratio = torch.tensor([-math.atan(i + 1) + math.pi / 4 + 1 for i in range(pred_len)],
+                             dtype=torch.float32).unsqueeze(-1)
+        self.register_buffer('ratio', ratio)
+        self.l1 = nn.L1Loss()
+
+    def forward(self, pred, true):
+        r = self.ratio.to(device=pred.device, dtype=pred.dtype)
+        return self.l1(pred * r, true * r)
 
 
 class Exp_Long_Term_Forecast(Exp_Basic):
@@ -45,6 +65,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             return nn.HuberLoss(delta=1.0)
         if name == 'smooth_l1':
             return nn.SmoothL1Loss()
+        if name == 'arctan_mae':
+            return ArctanMAELoss(self.args.pred_len)
         raise ValueError(f'unknown training loss: {self.args.loss}')
 
     def _forward(self, batch_x, batch_y, batch_x_mark, batch_y_mark):
