@@ -27,8 +27,11 @@ python run.py -c configs/PatchTST/ETTh1_96.yaml --set training.learning_rate=1e-
 Shipped experiment configs follow the **official paper repo recipes**
 (PatchTST: [yuqinie98/PatchTST](https://github.com/yuqinie98/PatchTST)) for all model
 and optimization hyperparameters, while keeping this framework's evaluation protocol
-(splits / scaling / metrics / `drop_last=False`) and `seq_len` 96 (illness 36), with
-`train_epochs` capped at 30. Reference result for ETTh1 96→96 (standardized scale):
+(splits / scaling / metrics / `drop_last=False`) and `seq_len` 96 (illness 36). Epochs
+are not a constraint: every model trains to natural convergence under early stopping
+(`train_epochs` defaults to 100; models whose official LR schedule is defined over the
+epoch count — OneCycle/cosine — keep their official epoch number, since changing it
+would change the schedule). Reference result for ETTh1 96→96 (standardized scale):
 MSE ≈ 0.37–0.40. Exchange has no official script (not tested in the paper) and borrows
 the ETTh recipe.
 
@@ -67,7 +70,7 @@ configs under `configs/<X>/` following the official best hyperparameters and a
 `scripts/<X>/run_full.sh` batch runner. The evaluation protocol (splits /
 scaling / metrics / `drop_last=False` / early stopping on validation MSE) is
 this framework's; model architecture and training recipes (loss, LR schedule,
-epochs) follow each official repo. Model-specific config keys live in prefixed
+patience) follow each official repo, with no epoch cap (see above). Model-specific config keys live in prefixed
 sections of `configs/default.yaml` (e.g. `xp_*`, `duet_*`); internal
 regularizers flow through the `(outputs, aux_loss)` tuple. Sources, in the
 order of `MODEL_REGISTRY`:
@@ -87,24 +90,33 @@ order of `MODEL_REGISTRY`:
 
 Extra pip dependencies: `einops` (DUET, PathFormer), `PyWavelets` (SimpleTM).
 
-**PRISM** — research model (frequency-guided adaptive patching + spectral
-relational modeling). Pipeline: RevIN → trend/season decomposition; the trend
-goes through a linear head, while the season branch computes its amplitude
-spectrum, matches it against a learnable spectral pattern dictionary (FAP
-router), applies heterogeneous-graph spectral filtering across channels (SRM),
-and feeds a **spectral information-clock adaptive patching** backbone: a local
-short-time-spectrum affinity yields a per-position information density whose
-integral fires patch boundaries — dense/resonant segments get more, finer
-patches, with a fixed token budget and a strict uniform-patch degeneration
-(`clock_mode: uniform`). All PRISM hyperparameters and ablation switches
-(`clock_mode` / `clock_density` / `use_graph` / `use_srm` / `use_fusion`) live
-in the `prism` section of `configs/default.yaml`; other models ignore that
-section. Experiment configs: `configs/PRISM/*.yaml`; batch runners:
-`scripts/PRISM/*.sh`; published seq96 baseline numbers for comparison:
-`docs/baselines_seq96.md`.
+**PRISM** — research model, backbone ported from FRAME (Frequency-aware
+Relational Adaptive Mixture-of-Experts). Pipeline: RevIN → learnable spectral
+pattern prototypes `[C, K, F]` → **parallel dynamic patching**: per channel a
+cursor walks the series, scoring candidate patch lengths by sparse spectral
+resonance against the prototypes (top-k frequency selection + Gaussian
+smoothing + cosine similarity) and picking one via Gumbel-Softmax during
+training / argmax at inference → **spectral mixture-of-experts**: K time-domain
+expert filters are contextualized by a heterogeneous graph attention
+(intra-pattern variable↔variable, inter-pattern pattern↔pattern), rFFT'd and
+fused by the resonance gate into one effective per-channel filter applied by
+the convolution theorem, then mixed with a moving-average trend branch by
+`seasonal_alpha` → patches scattered back to `[B, C, L]` → MLP head → RevIN
+denorm. Ablation switches in the `prism` section of `configs/default.yaml`:
+`pattern_strategy` (5 prototype parameterizations), `seasonal_alpha`
+(`1.0` = spectral branch only, `0.0` = trend only), `patch_pool` (a single
+element degenerates to fixed-length patching), `freq_topk`, `pattern_nums`.
+Other models ignore that section. Experiment configs: `configs/PRISM/*.yaml`;
+batch runner: `scripts/PRISM/run_full.sh`; dataset-free structural check:
+`scripts/PRISM/check_frame.py`; published seq96 baseline numbers for
+comparison: `docs/baselines_seq96.md`; measured periodicity of every dataset
+(ACF peaks, spectral peaks, within-window density unevenness) with the derived
+per-dataset patch-pool recommendations: `docs/dataset_periodicity.md`
+(reproduce with `scripts/period_probe.py`); the epoch / early-stopping protocol, per-model
+caps and the handling of runs that hit their cap: `docs/training_protocol.md`.
 
 ```bash
-python run.py -c configs/PRISM/ETTm1_96.yaml
+python run.py -c configs/PRISM/ETTh1_96.yaml
 ```
 
 Training-loss switches shared by all models (`training` section):
@@ -115,8 +127,8 @@ Training-loss switches shared by all models (`training` section):
   (`|rfft(pred) − rfft(true)|` mean), `0` disables it; `rec_lambda` weights the
   time-domain term when the auxiliary loss is active;
 - a model may return `(outputs, aux_loss)` from `forward` to inject internal
-  regularizers (e.g. PRISM's routing entropy / clock KL band) into the training
-  loss; the tuple is unpacked automatically and ignored at eval time.
+  regularizers (e.g. SimpleTM's attention L1, TimeFilter's MoE loss) into the
+  training loss; the tuple is unpacked automatically and ignored at eval time.
 
 ## Project Layout
 
@@ -141,7 +153,7 @@ models/
   <X>.py                     # ten ported baselines (see Models)
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # data files (see dataset/README.md)
-docs/                        # notes, e.g. published seq96 baseline numbers
+docs/                        # notes: published seq96 baseline numbers, dataset periodicity, training protocol
 scripts/                     # batch runners, e.g. scripts/PatchTST/ETTh1.sh runs all four horizons
 ```
 

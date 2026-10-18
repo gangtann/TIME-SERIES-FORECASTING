@@ -24,8 +24,10 @@ python run.py -c configs/PatchTST/ETTh1_96.yaml --set training.learning_rate=1e-
 
 随附实验配置的**模型与优化超参对齐论文官方仓库**
 （PatchTST：[yuqinie98/PatchTST](https://github.com/yuqinie98/PatchTST)），
-评测协议（切分/标准化/指标/`drop_last=False`）与 `seq_len` 96（illness 36）用本框架设定，
-`train_epochs` 统一封顶 30。ETTh1 96→96 参考结果（标准化尺度）：MSE ≈ 0.37–0.40。
+评测协议（切分/标准化/指标/`drop_last=False`）与 `seq_len` 96（illness 36）用本框架设定。
+轮数不作约束：每个模型在早停下自然收敛（`train_epochs` 默认 100；官方学习率计划按 epoch 数
+定义的模型——OneCycle/cosine 类——保留官方轮数，改轮数即改计划）。ETTh1 96→96 参考结果
+（标准化尺度）：MSE ≈ 0.37–0.40。
 exchange 官方无脚本（论文未测），借用 ETTh 配方。
 
 每次运行的产物（`<setting>` = `{model_id}_{des}_{itr序号}`，如 `ETTh1_96_96_exp_0`）：
@@ -56,8 +58,8 @@ python run.py -c checkpoints/ETTh1_96_96_exp_0/config.yaml
 **移植 baseline** — 十个模型自官方仓库移植，每个为 `models/<X>.py`（+ 自包含的
 `layers/<X>_layers.py`），`configs/<X>/` 下按官方最优超参逐格配置，
 `scripts/<X>/run_full.sh` 一键批跑。评测协议（切分/标准化/指标/`drop_last=False`/
-按验证集 MSE 早停）用本框架的；模型结构与训练配方（损失、LR 调度、epochs）对齐
-各官方仓库。模型专属配置键放在 `configs/default.yaml` 带前缀的专属节（如
+按验证集 MSE 早停）用本框架的；模型结构与训练配方（损失、LR 调度、耐心）对齐
+各官方仓库，轮数不封顶（见上）。模型专属配置键放在 `configs/default.yaml` 带前缀的专属节（如
 `xp_*`、`duet_*`）；内部正则项经 `(outputs, aux_loss)` 元组通路进训练损失。
 出处（按 `MODEL_REGISTRY` 顺序）：
 
@@ -76,19 +78,26 @@ python run.py -c checkpoints/ETTh1_96_96_exp_0/config.yaml
 
 额外 pip 依赖：`einops`（DUET、PathFormer）、`PyWavelets`（SimpleTM）。
 
-**PRISM** — 研究模型（频域引导的自适应 patch + 谱关系建模）。数据流：RevIN →
-趋势/季节分解；趋势走线性头，季节分支计算幅度谱，与可学习的谱模式字典做亲和
-匹配（FAP 路由），经跨通道异构图谱滤波（SRM）后送入**谱驱动信息时钟自适应
-patch** 主干：短时谱局部亲和给出逐位置信息密度，密度积分发放 patch 边界——
-信息密集/谱共振强的片段自动获得更多更细的 patch，token 总数固定，并可严格
-退化为均匀 patch（`clock_mode: uniform`）。全部 PRISM 超参与消融开关
-（`clock_mode` / `clock_density` / `use_graph` / `use_srm` / `use_fusion`）
-集中在 `configs/default.yaml` 的 `prism` 节，其他模型不读取该节。实验配置见
-`configs/PRISM/*.yaml`；批量脚本见 `scripts/PRISM/*.sh`；公开 baseline seq96
-对照数字见 `docs/baselines_seq96.md`。
+**PRISM** — 研究模型，主干移植自 FRAME（频域感知的关系自适应混合专家）。
+数据流：RevIN → 可学习谱模式原型 `[C, K, F]` → **并行动态分块**：逐通道游标
+扫过序列，候选 patch 长度与原型做稀疏谱共振打分（top-k 频点稀疏化 + 高斯平滑
++ 余弦相似度），训练期经 Gumbel-Softmax 硬选择、推理期取 argmax → **谱混合
+专家**：K 个时域专家滤波器先经异构图注意力（模式内变量↔变量、模式间模式↔模式）
+编码，再做 rFFT 并按共振门控融合为逐通道有效滤波器，依卷积定理在频域相乘，
+与滑动平均趋势分支按 `seasonal_alpha` 混合 → patch 散射回 `[B, C, L]` →
+MLP 头 → RevIN 反归一化。消融开关集中在 `configs/default.yaml` 的 `prism` 节：
+`pattern_strategy`（原型参数化五挡）、`seasonal_alpha`（`1.0` 纯谱分支、
+`0.0` 纯趋势分支）、`patch_pool`（单元素即退化为定长 patch）、`freq_topk`、
+`pattern_nums`；其他模型不读取该节。实验配置见 `configs/PRISM/*.yaml`；
+批量脚本见 `scripts/PRISM/run_full.sh`；无数据集结构自检见
+`scripts/PRISM/check_frame.py`；公开 baseline seq96 对照数字见
+`docs/baselines_seq96.md`；各数据集周期结构实测（ACF 峰、谱峰、窗内密度不均匀度）
+及由此推导的逐数据集候选池建议见 `docs/dataset_periodicity.md`
+（复现脚本 `scripts/period_probe.py`）；轮数/早停协议、各模型上限与撞上限 run 的处理见
+`docs/training_protocol.md`。
 
 ```bash
-python run.py -c configs/PRISM/ETTm1_96.yaml
+python run.py -c configs/PRISM/ETTh1_96.yaml
 ```
 
 所有模型共享的训练损失开关（`training` 节）：
@@ -97,8 +106,8 @@ python run.py -c configs/PRISM/ETTm1_96.yaml
   选择恒用 MSE，保证评测口径不变；
 - `auxi_lambda` — FreDF 式频域辅助损失权重（`|rfft(pred) − rfft(true)|` 均值），
   `0` 为完全关闭；辅助损失开启时 `rec_lambda` 为时域项权重；
-- 模型的 `forward` 可返回 `(outputs, aux_loss)` 元组，把内部正则项（如 PRISM
-  的路由熵 / 时钟 KL 带）注入训练损失；元组自动解包，eval 阶段忽略。
+- 模型的 `forward` 可返回 `(outputs, aux_loss)` 元组，把内部正则项（如 SimpleTM
+  的注意力 L1、TimeFilter 的 MoE 损失）注入训练损失；元组自动解包，eval 阶段忽略。
 
 ## 目录结构
 
@@ -123,7 +132,7 @@ models/
   <X>.py                     # 十个移植 baseline（见"模型"一节）
 utils/                       # config / metrics / timefeatures / tools
 dataset/                     # 数据文件（见 dataset/README.md）
-docs/                        # 笔记文档，如公开 baseline seq96 对照数字
+docs/                        # 笔记文档：公开 baseline seq96 对照数字、数据集周期结构实测、训练协议
 scripts/                     # 批量运行脚本，如 scripts/PatchTST/ETTh1.sh 一键跑四个预测长度
 ```
 
