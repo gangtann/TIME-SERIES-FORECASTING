@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# PRISM clock 最终全网格批：5 数据集 × pred{96,192,336,720}，统一最终配方。
-# model_id 后缀 _clkf（final）；快速扫描的 _clk 行（旧配方）保留待清理。
+# PRISM 全网格批：ETTh1/ETTh2/ETTm1/ETTm2/weather × pred{96,192,336,720}。
+# 配方全部写进各格 yaml（官方 scripts/Frame/<数据集>.sh 的 pred_len=336 档，
+# 96/192/720 沿用同数据集 336 配方），无 RECIPE 叠加。
 #
 # 服务器：nohup env PYTHON=/root/miniconda3/envs/tsf/bin/python \
 #           RESULTS_CSV=/root/autodl-tmp/results/results.csv \
-#           bash scripts/PRISM/run_clock_full.sh > /root/autodl-tmp/clock_full.log 2>&1 &
+#           bash scripts/PRISM/run_full.sh > /root/autodl-tmp/logs/PRISM_full.log 2>&1 &
 cd "$(dirname "$0")/../.."
 PYTHON=${PYTHON:-python}
 RESULTS_CSV=${RESULTS_CSV:-./results/results.csv}
-
-# 最终配方（ETTm1_96 五轮探针收敛结果：0.3167/0.3477；dropout 用各格 yaml 默认）
-RECIPE="training.auxi_lambda=0.3 training.loss=MAE prism.clock_n_patch=16 training.learning_rate=0.001"
 
 CONFIGS=(
     ETTh1_96 ETTh1_192 ETTh1_336 ETTh1_720
@@ -23,16 +21,15 @@ CONFIGS=(
 fail=0
 for name in "${CONFIGS[@]}"; do
     cfg="configs/PRISM/${name}.yaml"
-    mid="$(grep -E '^\s*model_id:' "$cfg" | awk '{print $2}')_clkf"
+    mid="$(grep -E '^\s*model_id:' "$cfg" | awk '{print $2}')"
     if [ -f "$RESULTS_CSV" ] && grep -q ",${mid}_exp_0," "$RESULTS_CSV"; then
         echo "[skip] $name (already in results.csv)"
         continue
     fi
     echo "[run ] PRISM $name  ($(date '+%F %T'))"
-    # shellcheck disable=SC2086
-    if ! "$PYTHON" run.py -c "$cfg" --set model_id="$mid" $RECIPE; then
+    if ! "$PYTHON" run.py -c "$cfg"; then
         echo "[FAIL] $name"
         fail=$((fail + 1))
     fi
 done
-echo "===== clock_full finished, failures: $fail  ($(date '+%F %T')) ====="
+echo "===== PRISM run_full finished, failures: $fail  ($(date '+%F %T')) ====="
