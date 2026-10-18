@@ -17,4 +17,5 @@ model:
   e_layers: 3
 
 training:
-  train_epochs: 10
+  train_epochs: 100        # 官方轮数不再覆盖（学习率计划与轮数无关）：靠早停自然收敛，100 只是安全上限
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛

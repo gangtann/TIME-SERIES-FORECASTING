@@ -17,5 +17,5 @@ model:
 training:
   batch_size: 64            # DUET 配方
   learning_rate: 0.001     # DUET 配方
-  train_epochs: 20          # 官方 run.py 默认
+  # train_epochs 不再覆盖（官方 20）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
   patience: 5               # 官方 run.py 默认

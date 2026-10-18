@@ -22,4 +22,4 @@ model:
 training:
   batch_size: 128
   lradj: type3
-  patience: 100
+  patience: 10             # 官方 100（= 固定跑满全部轮数）；2026-09-10 用户规定按早停自然收敛，取官方其他脚本常用的 10

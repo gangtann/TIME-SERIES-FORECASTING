@@ -17,5 +17,5 @@ model:
   factor: 3
 
 training:
-  train_epochs: 10
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
   loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）
