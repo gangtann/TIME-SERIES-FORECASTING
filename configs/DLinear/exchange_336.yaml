@@ -1,0 +1,18 @@
+# DLinear / exchange / 96 -> 336（官方配方: cure-lab/LTSF-Linear scripts/EXP-LongForecasting/Linear/exchange_rate.sh）
+# 官方协议 seq_len=336，此处按本框架 seq96 统一协议，仅沿用官方其余超参
+basic:
+  model: DLinear
+  model_id: DLinear_exchange_96_336
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 336
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+training:
+  batch_size: 32
+  learning_rate: 0.0005
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛

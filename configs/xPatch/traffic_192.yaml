@@ -1,0 +1,23 @@
+# xPatch / traffic / 96 -> 192（官方 stitsyuk/xPatch scripts/xPatch_unified.sh L120-138：batch=96 lr=0.005 lradj=sigmoid + ema/0.3/0.3；
+# epochs=100/patience=10/patch=16/8/padding=end/revin 取官方 run.py argparse 默认；训练损失=官方 exp_main 的 arctan 加权 MAE；
+# test 的 drop_last 本框架恒 False，对应官方论文 fair 版协议）
+# 显存提示：官方 batch 96 × 862 通道 = 83k 条通道独立序列/批（ETT 2048×7 的约 5.8 倍），24 GB 单卡长视野（720）有 OOM 风险，未设 micro_batch
+basic:
+  model: xPatch
+  model_id: xPatch_traffic_96_192
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 192
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+training:
+  batch_size: 96
+  learning_rate: 0.005
+  lradj: sigmoid
+  loss: arctan_mae
+  train_epochs: 100
+  patience: 10

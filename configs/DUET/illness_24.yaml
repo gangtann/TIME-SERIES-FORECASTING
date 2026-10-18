@@ -1,0 +1,32 @@
+# DUET / illness / 36 -> 24（官方 decisionintelligence/DUET scripts/multivariate_forecast/ILI_script/DUET.sh L1；DUET_unified_seq_len_96.sh 不含 ILI）
+# 官方该格 seq_len=104，此处按本框架 illness 协议 seq_len=36、label_len=18（DUET 不读 label_len），仅沿用官方其余超参
+# seq_len=36 与模型兼容、无需改代码：马氏 mask 频点 36//2+1=19，专家内 moving_avg 25 两端各复制填充 12 步输出仍 36 步，路由/专家均为 seq_len 输入的线性层
+# 脚本未写 hidden_size，取官方 duet.py 默认 256（= default.yaml）；e_layers 2 与 default 相同不覆盖；patch_len 48 DUET 不读
+basic:
+  model: DUET
+  model_id: DUET_illness_36_24
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 24
+
+model:
+  d_model: 256
+  d_ff: 512
+  n_heads: 1
+  factor: 3
+
+training:
+  batch_size: 8
+  train_epochs: 100
+  patience: 5
+  learning_rate: 0.001
+  loss: MAE
+  lradj: type1
+
+duet:
+  duet_num_experts: 2
+  duet_fc_dropout: 0.0  # 官方脚本 fc_dropout 0（default 0.2）

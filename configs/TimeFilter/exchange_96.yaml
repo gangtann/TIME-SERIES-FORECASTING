@@ -1,0 +1,30 @@
+# TimeFilter / exchange / 96 -> 96（TimeFilter 官方仓库 TROUBADOUR000/TimeFilter 无 Exchange 脚本；取 BenchCouncil/TimeMosaic
+# scripts/TimeFilter/Exchange.sh 的 Exchange_96_96 条目（--task_name Exp_TimeFilter，同仓库 exp/exp_TimeFilter.py）；官方脚本即 seq_len=96）
+# 脚本只写 seq/label/pred_len、e_layers 2、d_layers 1、factor 3、enc_in 8，其余全取 TimeMosaic run.py argparse 默认：
+#   d_model 512 / d_ff 2048 / n_heads 8 / dropout 0.1 / patch_len 16 / alpha_TimeFilter 0.1 / top_p 0.5 / pos 1 /
+#   lr 1e-4 / batch 32 / patience 3 / lradj type1 / loss MSE —— 与 default.yaml 全部相同；结构键仍显式写出便于核对
+#   （n_heads 8 与 TimeFilter 自家仓库默认 4 不同，照 TimeMosaic 仓库取 8；lradj 为 type1 而非 TimeFilter 自家的 cosine）
+# lradj type1（每轮减半，计划与总轮数无关），且 TimeMosaic 的 EarlyStopping 是真实早停（patience 3，取最优验证轮）：
+#   train_epochs 不再覆盖（官方 10）：上限取 default 的 100、靠早停自然收敛
+basic:
+  model: TimeFilter
+  model_id: TimeFilter_exchange_96_96
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 96
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  d_model: 512
+  d_ff: 2048
+  e_layers: 2
+  n_heads: 8        # TimeMosaic run.py 默认 8
+  dropout: 0.1
+  patch_len: 16
+
+training:
+  lradj: type1      # TimeMosaic run.py 默认 type1（非 cosine2）

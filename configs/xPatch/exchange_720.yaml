@@ -1,0 +1,22 @@
+# xPatch / exchange / 96 -> 720（官方 stitsyuk/xPatch scripts/xPatch_unified.sh L160-178：batch=32 lr=0.00001 lradj=sigmoid + ema/0.3/0.3；
+# epochs=100/patience=10/patch=16/8/padding=end/revin 取官方 run.py argparse 默认；训练损失=官方 exp_main 的 arctan 加权 MAE；
+# test 的 drop_last 本框架恒 False，对应官方论文 fair 版协议）
+basic:
+  model: xPatch
+  model_id: xPatch_exchange_96_720
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 720
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+training:
+  batch_size: 32
+  learning_rate: 0.00001
+  lradj: sigmoid
+  loss: arctan_mae
+  train_epochs: 100
+  patience: 10

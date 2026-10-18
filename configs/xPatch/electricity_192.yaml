@@ -1,0 +1,23 @@
+# xPatch / electricity / 96 -> 192（官方 stitsyuk/xPatch scripts/xPatch_unified.sh L140-158：batch=256 lr=0.005 lradj=sigmoid + ema/0.3/0.3；
+# epochs=100/patience=10/patch=16/8/padding=end/revin 取官方 run.py argparse 默认；训练损失=官方 exp_main 的 arctan 加权 MAE；
+# test 的 drop_last 本框架恒 False，对应官方论文 fair 版协议）
+# 显存提示：官方 batch 256 × 321 通道 = 82k 条通道独立序列/批（ETT 2048×7 的约 5.7 倍），24 GB 单卡长视野（720）有 OOM 风险，未设 micro_batch
+basic:
+  model: xPatch
+  model_id: xPatch_electricity_96_192
+
+data:
+  data: custom
+  data_path: electricity.csv
+  pred_len: 192
+  enc_in: 321
+  dec_in: 321
+  c_out: 321
+
+training:
+  batch_size: 256
+  learning_rate: 0.005
+  lradj: sigmoid
+  loss: arctan_mae
+  train_epochs: 100
+  patience: 10

@@ -1,0 +1,31 @@
+# PatchMLP / illness / 36 -> 48（模型与训练配方: DUET 仓库 decisionintelligence/DUET 第三方配方
+# scripts/multivariate_forecast/ILI_script/PatchMLP.sh 的 horizon=48 条目，其 seq_len=104，
+# 此处按本框架 illness 协议 seq_len=36、label_len=18（PatchMLP 不读 label_len）；配方中 norm=true 即 default 的 use_norm；
+# 配方 dropout=0.1 与模型硬编码 nn.Dropout(0.1) 一致不写；其余未列键=官方 run.py 默认）
+# 形状约束改动：官方硬编码 patch 长度 [48,24,12,6]（步长各为一半）中 48 > seq_len=36，unfold 取不出 patch，
+# 且 patch_num=int((36-48)/24+1)=0 使 d_model//patch_num 除零（官方 seq104 下该尺度为 3 个 patch）；
+# 最小改动只把最大尺度 48 换成 36（=seq_len，步长 18，1 个 patch），其余 24/12/6 不变
+# （在 36 步上各 2/5/11 个 patch、恰好覆盖全窗）；d_model=2048 仍被 4 路尺度整除
+basic:
+  model: PatchMLP
+  model_id: PatchMLP_illness_36_48
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 48
+
+model:
+  d_model: 2048             # DUET 配方
+  e_layers: 2               # DUET 配方
+
+training:
+  batch_size: 64            # DUET 配方
+  learning_rate: 0.001      # DUET 配方
+  # train_epochs 不再覆盖（官方 20）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
+  patience: 5               # 官方 run.py 默认
+
+patchmlp:
+  pml_patch_lens: [36, 24, 12, 6]   # seq_len=36 形状约束（官方硬编码 [48,24,12,6]，见文件头）

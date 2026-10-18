@@ -1,0 +1,21 @@
+# iTransformer / exchange / 96 -> 720（官方 thuml/iTransformer scripts/multivariate_forecasting/Exchange/iTransformer.sh；脚本未写的训练超参 = 官方 run.py argparse 默认）
+# 脚本未写 batch_size/learning_rate，官方 run.py 默认 32/0.0001 与 default.yaml 相同，不覆盖
+basic:
+  model: iTransformer
+  model_id: iTransformer_exchange_96_720
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 720
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  d_model: 128
+  d_ff: 128
+  e_layers: 2
+
+training:
+  train_epochs: 100        # 官方轮数不再覆盖（学习率计划与轮数无关）：靠早停自然收敛，100 只是安全上限

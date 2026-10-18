@@ -1,0 +1,29 @@
+# SimpleTM / exchange / 96 -> 192（SimpleTM 官方仓库无 Exchange 脚本；取 BenchCouncil/TimeMosaic scripts/SimpleTM/Exchange.sh 第2段(L24-43)）
+# 官方该脚本即 seq_len=96（label_len 48，SimpleTM 不读），与本框架协议一致；脚本只写 e_layers 2 / factor 3，
+# 其余取 TimeMosaic run.py argparse 默认：d_model 512 / d_ff 2048 / lr 1e-4 / batch 32 / patience 3 / lradj type1 /
+# dropout 0.1 / loss MSE / alpha 1 / wv db1 / m 3 / geomattn_dropout 0.5 —— 均与 default.yaml 相同，不覆盖
+# stm_l1_weight 置 0：TimeMosaic exp/exp_long_term_forecasting.py 非 AMP 分支（L151-156）先算 criterion + l1_weight*attn[0]，
+# 随即被 `loss = criterion(outputs, batch_y)` 覆盖，官方实际训练不含稀疏正则（use_amp 默认关）
+# factor 照官方写 3，但 GeomAttention 不使用 factor
+# train_epochs 不覆盖（官方 10）：type1 学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
+basic:
+  model: SimpleTM
+  model_id: SimpleTM_exchange_96_192
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 192
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  e_layers: 2
+  factor: 3
+
+simpletm:
+  stm_alpha: 1.0
+  stm_l1_weight: 0.0
+  stm_wv: db1
+  stm_m: 3

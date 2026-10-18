@@ -1,0 +1,34 @@
+# PathFormer / traffic / 96 -> 336（官方配方 decisionintelligence/pathformer scripts/multivariate/traffic.sh（四个 pred 同配方）；损失 nn.L1Loss -> MAE）
+# 官方脚本本身即 seq_len=96，与本框架协议一致；train_epochs/patience 照官方（OneCycleLR 计划按轮数定义）
+# 显存提示：862 通道 × batch 24（B·C = 20688 条序列进 inter 注意力），PathFormer 显存开销大，24 GB 卡 OOM 风险高；
+# 按规定保持官方 batch 24、不设 micro_batch，若 OOM 需另行决定
+basic:
+  model: PathFormer
+  model_id: PathFormer_traffic_96_336
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 336
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_model: 16
+  d_ff: 128
+
+pathformer:
+  pf_num_nodes: 862
+  pf_k: 2
+  pf_patch_size_list: [16, 12, 8, 32, 12, 8, 6, 32, 8, 6, 16, 12]
+  pf_residual_connection: 1
+
+training:
+  train_epochs: 50
+  batch_size: 24
+  patience: 10
+  learning_rate: 0.0002
+  loss: MAE
+  lradj: TST
+  pct_start: 0.2

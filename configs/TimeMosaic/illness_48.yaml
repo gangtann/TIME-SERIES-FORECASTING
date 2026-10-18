@@ -1,0 +1,31 @@
+# TimeMosaic / illness / 36 -> 48（无官方配方：官方仓库 BenchCouncil/TimeMosaic scripts/TimeMosaic/ 下无 ILI 脚本，
+# 借用同仓库 scripts/TimeMosaic/Exchange.sh 的 pred_len=336 条目（视野按序号映射 24/36/48/60 -> 96/192/336/720）。
+# 选 Exchange 的理由：两者都是低频（日/周）、通道少（8 vs 7）、样本少的数据集，比小时级 ETT/ECL/Traffic 更接近 ILI；
+# 输入窗口按本框架 illness 协议 seq_len=36（官方 Exchange 为 320），其余结构/训练参数照官方；
+# 官方 Exp_TimeMosaic 训练主损失硬编码 nn.L1Loss，故 training.loss: MAE。
+# 形状约束改动：官方默认 tms_patch_len_list=[8,16,32] 的 max=32 不整除 36，且模型要求官方 head 公式
+# int((36-16)/8+2)=4 等于实际 patch 数 (36//max)*(max//min)；保持 3 个候选、1:2:4 比例的最小改动为 [9,18,36]
+# （1 个 region，4 个 patch token）。分段解码段长：pred_len 不在 96/192/336/720 时取 tms_pre12=6，24/36/48/60 均整除）
+basic:
+  model: TimeMosaic
+  model_id: TimeMosaic_illness_36_48
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 48
+
+model:
+  e_layers: 1
+  n_heads: 4
+  factor: 3
+
+training:
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
+  loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）
+
+timemosaic:
+  tms_patch_len_list: [9, 18, 36]   # seq_len=36 形状约束（官方默认 [8,16,32]，见文件头）
+  tms_channel: CDA   # 借用 Exchange.sh pred_len=336 的 --channel CDA

@@ -1,0 +1,31 @@
+# TimeMixer / exchange / 96 -> 720（官方配方：xPatch 仓库 stitsyuk/xPatch 内置的官方 TimeMixer 代码
+# ablation/TimeMixer-main/scripts/long_term_forecast/Exchange_script/TimeMixer_exchange_unify.sh；TimeMixer 自家仓库 kwuking/TimeMixer 无 Exchange 脚本）
+# 官方该脚本 seq_len=512，此处按本框架统一协议 seq_len=96，其余结构/训练参数照官方（96/48/24/12 四尺度，下采样整除）；
+# train_epochs=10 / patience=3 为脚本显式值，保留（TST 即 OneCycleLR 按总轮数排计划）；
+# 脚本未写键取官方 run.py argparse 默认：lradj=TST、pct_start=0.2、dropout=0.1；label_len=0 为脚本显式值；
+# 下采样 3 层/窗口 2/avg 与 default.yaml timemixer 节一致，不覆盖
+basic:
+  model: TimeMixer
+  model_id: TimeMixer_exchange_96_720
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  label_len: 0
+  pred_len: 720
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  d_model: 16
+  d_ff: 32
+  e_layers: 2
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+  patience: 3

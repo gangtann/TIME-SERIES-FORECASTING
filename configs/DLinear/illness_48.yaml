@@ -1,0 +1,18 @@
+# DLinear / illness / 36 -> 48（官方配方: cure-lab/LTSF-Linear scripts/EXP-LongForecasting/Linear/ili.sh）
+# 官方协议 seq_len=104（label_len 18），此处按本框架 illness 协议 seq_len=36、label_len=18，仅沿用官方其余超参
+# seq_len=36 与分解核 dl_kernel_size=25 兼容（两端各复制填充 12 步，输出仍 36 步），无需改动
+basic:
+  model: DLinear
+  model_id: DLinear_illness_36_48
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 48
+
+training:
+  batch_size: 32
+  learning_rate: 0.01
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛

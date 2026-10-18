@@ -1,0 +1,31 @@
+# DUET / electricity / 96 -> 96（官方 decisionintelligence/DUET scripts/multivariate_forecast/DUET_unified_seq_len_96.sh L32；
+# 脚本未写 hidden_size，取官方 duet.py 默认 256（= default.yaml）；batch 32 / e_layers 2 与 default 相同不覆盖）
+# 官方另有 Electricity_script/DUET.sh（seq_len 512、batch 16、e_layers 4、type1），与本框架 seq96 协议不符，未采用
+# 显存提示：321 通道，马氏 mask 中间张量 B×C×C×(L/2+1)=32×321²×49 ≈ 0.65 GB/份，注意力 n_heads 1，24 GB 卡预计可装下
+basic:
+  model: DUET
+  model_id: DUET_electricity_96_96
+
+data:
+  data: custom
+  data_path: electricity.csv
+  pred_len: 96
+  enc_in: 321
+  dec_in: 321
+  c_out: 321
+
+model:
+  d_ff: 1024
+  n_heads: 1
+  factor: 3
+  dropout: 0.5
+
+training:
+  train_epochs: 100
+  patience: 5
+  learning_rate: 0.0005
+  loss: MAE
+  lradj: type3
+
+duet:
+  duet_fc_dropout: 0.0  # 官方脚本 fc_dropout 0（default 0.2）

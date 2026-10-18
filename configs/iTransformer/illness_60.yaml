@@ -1,0 +1,24 @@
+# iTransformer / illness / 36 -> 60（iTransformer 官方仓库无 ILI 脚本；取 decisionintelligence/DUET scripts/multivariate_forecast/ILI_script/iTransformer.sh，TFB transformer_adapter）
+# 脚本未写的超参 = 同仓库 ts_benchmark/baselines/time_series_library/adapters_for_transformers.py MODEL_HYPER_PARAMS 默认（batch 32 / patience 3 / MSE / type1 / dropout 0.1 / n_heads 8，与 default.yaml 相同，不覆盖）
+# 官方该格 seq_len=36，与本框架 illness 协议一致；label_len=18 按本框架协议（iTransformer 不读 label_len）
+# factor 照官方写 3，但 iTransformer 的 FullAttention mask_flag=False，factor 实际不参与计算
+basic:
+  model: iTransformer
+  model_id: iTransformer_illness_36_60
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 60
+
+model:
+  d_model: 256
+  d_ff: 512
+  e_layers: 3
+  factor: 3
+
+training:
+  learning_rate: 0.0005
+  train_epochs: 100        # 官方轮数不再覆盖（学习率计划与轮数无关）：靠早停自然收敛，100 只是安全上限

@@ -1,0 +1,22 @@
+# iTransformer / traffic / 96 -> 336（官方 thuml/iTransformer scripts/multivariate_forecasting/Traffic/iTransformer.sh；脚本未写的训练超参 = 官方 run.py argparse 默认）
+basic:
+  model: iTransformer
+  model_id: iTransformer_traffic_96_336
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 336
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_model: 512
+  d_ff: 512
+  e_layers: 4
+
+training:
+  batch_size: 16
+  learning_rate: 0.001
+  train_epochs: 100        # 官方轮数不再覆盖（学习率计划与轮数无关）：靠早停自然收敛，100 只是安全上限

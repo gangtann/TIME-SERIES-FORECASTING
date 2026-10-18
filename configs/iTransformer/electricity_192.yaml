@@ -1,0 +1,22 @@
+# iTransformer / electricity / 96 -> 192（官方 thuml/iTransformer scripts/multivariate_forecasting/ECL/iTransformer.sh；脚本未写的训练超参 = 官方 run.py argparse 默认）
+basic:
+  model: iTransformer
+  model_id: iTransformer_electricity_96_192
+
+data:
+  data: custom
+  data_path: electricity.csv
+  pred_len: 192
+  enc_in: 321
+  dec_in: 321
+  c_out: 321
+
+model:
+  d_model: 512
+  d_ff: 512
+  e_layers: 3
+
+training:
+  batch_size: 16
+  learning_rate: 0.0005
+  train_epochs: 100        # 官方轮数不再覆盖（学习率计划与轮数无关）：靠早停自然收敛，100 只是安全上限

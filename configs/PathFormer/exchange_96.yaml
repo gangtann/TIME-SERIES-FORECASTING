@@ -1,0 +1,38 @@
+# PathFormer / exchange / 96 -> 96（PathFormer 官方仓库 decisionintelligence/pathformer 无 exchange 脚本；取同作者仓库
+# decisionintelligence/DUET scripts/multivariate_forecast/Exchange_script/Pathformer.sh horizon=96 条目（TFB pathformer.Pathformer 适配器））
+# 脚本未写的超参 = 同仓库 ts_benchmark/baselines/pathformer/pathformer.py MODEL_HYPER_PARAMS 默认：num_epochs 30 / patience 5 / pct_start 0.4 /
+# loss MAE（nn.L1Loss）/ num_experts_list [4,4,4]（单层只用第 0 项）/ revin 1 / batch_norm 0，均与本框架键对齐或同默认
+# 官方该格 seq_len=96，与本框架协议一致；patch [16,8,12,24] 全部整除 96，无需改动
+# 已知偏差：TFB 适配器 _process 丢弃模型返回的 balance_loss（不参与训练），本框架 exp 恒把 aux_loss 加进损失
+# （AMS 内已乘 1e-2），无配置开关可关；官方自家仓库 exp_main.py 同样是加上的
+basic:
+  model: PathFormer
+  model_id: PathFormer_exchange_96_96
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 96
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  d_model: 16
+  d_ff: 32
+
+pathformer:
+  pf_layer_nums: 1          # 官方 layer_nums 1（default 3）
+  pf_num_nodes: 8
+  pf_k: 1
+  pf_patch_size_list: [16, 8, 12, 24]
+  pf_residual_connection: 1
+
+training:
+  train_epochs: 30         # TFB 默认 num_epochs 30（OneCycleLR 按轮数定义，保留官方轮数）
+  batch_size: 128
+  patience: 5              # TFB 默认 patience 5
+  learning_rate: 0.0001
+  loss: MAE
+  lradj: TST
+  pct_start: 0.4          # TFB 默认 pct_start 0.4

@@ -1,0 +1,27 @@
+# TimeMosaic / electricity / 96 -> 192（超参对齐官方仓库 BenchCouncil/TimeMosaic scripts/TimeMosaic/ECL.sh；
+# 官方脚本本身即 seq_len=96，与本框架统一协议一致，结构/训练参数照官方；
+# 官方 Exp_TimeMosaic 训练主损失硬编码 nn.L1Loss，故 training.loss: MAE）
+# 显存提示：官方 --use_multi_gpu --devices 0,1,2,3 跑 batch 16（每卡 4），单张 24GB 卡整批 16 可能 OOM
+basic:
+  model: TimeMosaic
+  model_id: TimeMosaic_electricity_96_192
+
+data:
+  data: custom
+  data_path: electricity.csv
+  pred_len: 192
+  enc_in: 321
+  dec_in: 321
+  c_out: 321
+
+model:
+  e_layers: 2
+  factor: 3
+
+training:
+  batch_size: 16  # 官方脚本 --batch_size 16
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
+  loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）
+
+timemosaic:
+  tms_channel: CDP   # 官方脚本 --channel CDP

@@ -1,0 +1,35 @@
+# SimpleTM / electricity / 96 -> 192（官方 vsingh-group/SimpleTM scripts/multivariate_forecasting/ECL/SimpleTM.sh 第2段(L33-60)；
+# 脚本显式 lradj TST / patience 3；pct_start 0.2 / epochs 10 为官方 run.py 默认（OneCycle 计划依赖总轮数，保留官方 10 轮）
+# 脚本未写的 dropout 0.1 / factor 1 / activation gelu / loss MSE / geomattn_dropout 0.5 与 default.yaml 相同，不覆盖；
+# 官方 fix_seed 2025 / itr 3 由本框架种子协议接管
+# 显存提示：321 通道 × batch 256 × d_model 256，几何注意力分数张量 [B, m+1, d_model, d_model] 为本组最大；
+# 官方单卡（CUDA_VISIBLE_DEVICES=0）跑通，24 GB 预计可装下但未实测，OOM 时再议（不设 micro_batch）
+basic:
+  model: SimpleTM
+  model_id: SimpleTM_electricity_96_192
+
+data:
+  data: custom
+  data_path: electricity.csv
+  pred_len: 192
+  enc_in: 321
+  dec_in: 321
+  c_out: 321
+
+model:
+  d_model: 256
+  d_ff: 1024
+  e_layers: 1
+
+training:
+  batch_size: 256
+  learning_rate: 0.006
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+
+simpletm:
+  stm_alpha: 0.0
+  stm_l1_weight: 0.0
+  stm_wv: db1
+  stm_m: 3

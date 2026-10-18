@@ -1,0 +1,23 @@
+# TimeMosaic / exchange / 96 -> 96（超参对齐官方仓库 BenchCouncil/TimeMosaic scripts/TimeMosaic/Exchange.sh；
+# 官方协议为 seq_len=320，此处按本框架统一 seq96 评测协议，其余结构/训练参数照官方；
+# 官方 Exp_TimeMosaic 训练主损失硬编码 nn.L1Loss，故 training.loss: MAE）
+basic:
+  model: TimeMosaic
+  model_id: TimeMosaic_exchange_96_96
+
+data:
+  data: custom
+  data_path: exchange_rate.csv
+  pred_len: 96
+  enc_in: 8
+  dec_in: 8
+  c_out: 8
+
+model:
+  e_layers: 3
+  n_heads: 16
+  factor: 3
+
+training:
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
+  loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）

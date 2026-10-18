@@ -1,0 +1,37 @@
+# TimeMixer / illness / 36 -> 24（官方配方：xPatch 仓库 stitsyuk/xPatch 内置的官方 TimeMixer 代码
+# ablation/TimeMixer-main/scripts/long_term_forecast/ILI_script/TimeMixer_ili_unify.sh；TimeMixer 自家仓库 kwuking/TimeMixer 无 ILI 脚本）
+# 官方该脚本 seq_len=148，此处按本框架 illness 协议 seq_len=36，其余结构/训练参数照官方；
+# train_epochs=10 / patience=3 为脚本显式值，保留（TST 即 OneCycleLR 按总轮数排计划）；
+# 脚本未写键取官方 run.py argparse 默认：lradj=TST、pct_start=0.2、dropout=0.1
+# label_len：本框架 illness 协议为 18，此处沿用 TimeMixer 约定 0（官方 ILI 脚本亦显式 --label_len 0）。两者数值等价：
+#   TimeMixer 不读 x_dec；x_mark_dec 仅在 tmx_use_future_temporal_feature=1 时使用且被裁到末 pred_len 步；
+#   数据集样本数 len-seq_len-pred_len+1 与 label_len 无关；损失只取末 pred_len 步
+# 形状约束：官方 down_sampling_layers=2、window=2 → 36/18/9 三尺度均为整数，avg 池化与时间标记 x_mark[::2] 长度一致，
+#   无需改代码；只需覆盖 default.yaml 的 tmx_down_sampling_layers=3——若用 3 层，第 4 尺度池化得 9//2=4 而时间标记切片得 5，
+#   嵌入相加形状不符直接报错
+basic:
+  model: TimeMixer
+  model_id: TimeMixer_illness_36_24
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 0     # 协议 18 → TimeMixer 约定 0（数值等价，见文件头）
+  pred_len: 24
+
+model:
+  d_model: 16
+  d_ff: 32
+  e_layers: 2
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+  patience: 3
+
+timemixer:
+  tmx_down_sampling_layers: 2   # 官方 ILI 脚本值（default.yaml 为 unify 配方的 3；seq_len=36 下 3 层不可用，见文件头）

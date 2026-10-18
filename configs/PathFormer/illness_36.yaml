@@ -1,0 +1,38 @@
+# PathFormer / illness / 36 -> 36（PathFormer 官方仓库 decisionintelligence/pathformer 无 ILI 脚本；取同作者仓库
+# decisionintelligence/DUET scripts/multivariate_forecast/ILI_script/Pathformer.sh horizon=36 条目（TFB pathformer.Pathformer 适配器））
+# 脚本未写的超参 = 同仓库 ts_benchmark/baselines/pathformer/pathformer.py MODEL_HYPER_PARAMS 默认：layer_nums 3 / num_epochs 30 / patience 5 /
+# pct_start 0.4 / loss MAE（nn.L1Loss）/ num_experts_list [4,4,4] / revin 1 / batch_norm 0
+# 官方该格 seq_len=104，此处按本框架 illness 协议 seq_len=36、label_len=18（PathFormer 不读 label_len）
+# 形状约束改动：AMS 每层输入长度恒为 seq_len，Transformer_Layer 要求 patch 整除 seq_len（否则 unfold/reshape 后
+# 长度 patch*floor(36/patch) != 36，与残差相加报错）。官方 [[13,4,8,2],[13,8,4,2],[4,8,8,4]] 中 13、8 不整除 36，
+# 最小改动 = 取 36 的最近因数：13 -> 12、8 -> 9（4、2 保留，层内次序与第 3 层重复的 9/4 照官方）
+# 已知偏差：TFB 适配器 _process 丢弃 balance_loss（不参与训练），本框架 exp 恒把 aux_loss 加进损失（AMS 内已乘 1e-2），无开关可关
+basic:
+  model: PathFormer
+  model_id: PathFormer_illness_36_36
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 36
+
+model:
+  d_model: 2               # 官方 d_model 2（Intra_Patch_Attention head=2 可整除）
+  d_ff: 64
+
+pathformer:
+  pf_num_nodes: 7
+  pf_k: 1
+  pf_patch_size_list: [12, 4, 9, 2, 12, 9, 4, 2, 4, 9, 9, 4]   # seq_len=36 形状约束（官方 13->12、8->9，见文件头）
+  pf_residual_connection: 1
+
+training:
+  train_epochs: 30         # TFB 默认 num_epochs 30（OneCycleLR 按轮数定义，保留官方轮数）
+  batch_size: 24
+  patience: 5              # TFB 默认 patience 5
+  learning_rate: 0.0003
+  loss: MAE
+  lradj: TST
+  pct_start: 0.4          # TFB 默认 pct_start 0.4

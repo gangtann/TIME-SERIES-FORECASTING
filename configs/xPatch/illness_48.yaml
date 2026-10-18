@@ -1,0 +1,27 @@
+# xPatch / illness / 36 -> 48（官方 stitsyuk/xPatch scripts/xPatch_unified.sh L202-229：seq_len=36 label_len=18 batch=32 lr=0.01
+# lradj=type3 patch=6/3 + ema/0.3/0.3；epochs=100/patience=10/padding=end/revin 取官方 run.py argparse 默认；
+# 训练损失=官方 exp_main 的 arctan 加权 MAE；test 的 drop_last 本框架恒 False，对应官方论文 fair 版协议）
+# 官方该格即 seq_len=36，与本框架 illness 协议一致；patch 6/3 + end 填充 → patch_num=(36-6)//3+1+1=12，
+# 线性流要求 pred_len 为偶数（24/36/48/60 均满足），模型代码无需改动；label_len 照官方写 18（xPatch 不读）
+basic:
+  model: xPatch
+  model_id: xPatch_illness_36_48
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 48
+
+model:
+  patch_len: 6       # 官方脚本 --patch_len 6（default 16）
+  stride: 3          # 官方脚本 --stride 3（default 8）
+
+training:
+  batch_size: 32
+  learning_rate: 0.01
+  lradj: type3
+  loss: arctan_mae
+  train_epochs: 100
+  patience: 10

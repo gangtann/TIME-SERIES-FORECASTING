@@ -1,0 +1,31 @@
+# TimeMixer / traffic / 96 -> 192（官方配方 kwuking/TimeMixer scripts/long_term_forecast/Traffic_script/TimeMixer_unify.sh；
+# 官方脚本本身即 seq_len=96、label_len=0，结构/训练参数照官方；脚本未写 train_epochs/patience，取官方 run.py 默认 100/15
+# （TST 即 OneCycleLR 按总轮数排计划，故显式写 100；patience 15 显式写出，default.yaml 为 3）；
+# 其余未写键取 run.py 默认：lradj=TST、pct_start=0.2、dropout=0.1；下采样 3 层/窗口 2/avg 与 default.yaml timemixer 节一致，不覆盖；
+# 官方 --factor 3 / --d_layers 1 为 TimeMixer 不读的键，不写）
+# 显存提示：通道独立展平后每批 8×862=6896 条序列（d_model 32），官方 batch 8 照搬、未设 micro_batch；24 GB 单卡上长视野（720）风险最高
+basic:
+  model: TimeMixer
+  model_id: TimeMixer_traffic_96_192
+
+data:
+  data: custom
+  data_path: traffic.csv
+  label_len: 0
+  pred_len: 192
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_model: 32
+  d_ff: 64
+  e_layers: 3
+
+training:
+  batch_size: 8
+  learning_rate: 0.01
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 100
+  patience: 15

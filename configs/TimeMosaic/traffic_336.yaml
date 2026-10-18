@@ -1,0 +1,26 @@
+# TimeMosaic / traffic / 96 -> 336（超参对齐官方仓库 BenchCouncil/TimeMosaic scripts/TimeMosaic/Traffic.sh；
+# 官方脚本本身即 seq_len=96，与本框架统一协议一致，结构/训练参数照官方；
+# 官方 Exp_TimeMosaic 训练主损失硬编码 nn.L1Loss，故 training.loss: MAE）
+# 显存提示：官方 --use_multi_gpu --devices 0,1 跑 batch 4（每卡 2），单卡 batch 4 预计可装下
+basic:
+  model: TimeMosaic
+  model_id: TimeMosaic_traffic_96_336
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 336
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_model: 512
+  d_ff: 512       # 官方脚本 --d_ff 512（default 2048）
+  e_layers: 2
+  factor: 3
+
+training:
+  batch_size: 4   # 官方脚本 --batch_size 4
+  # train_epochs 不再覆盖（官方 10）：学习率计划与轮数无关，上限取 default 的 100、靠早停自然收敛
+  loss: MAE      # 官方 exp 固定 L1Loss（无视其 run.py --loss 默认 MSE）

@@ -1,0 +1,33 @@
+# DUET / traffic / 96 -> 720（官方 decisionintelligence/DUET scripts/multivariate_forecast/DUET_unified_seq_len_96.sh L47；
+# 脚本未写 hidden_size，取官方 duet.py 默认 256（= default.yaml）；batch 32 / d_model 512 / n_heads 8 与 default 相同不覆盖；
+# 脚本另写 "normalization": true —— TFB 数据标准化由 "norm" 控制，该键 DUET 不读，本框架恒标准化，无对应项）
+# 官方另有 Traffic_script/DUET.sh（seq_len 336/512、batch 16、type1），与本框架 seq96 协议不符，未采用
+# 显存警告：862 通道 × batch 32 —— 马氏 mask 的 diff/temp 张量 32×862²×49 ≈ 4.7 GB/份（前向保存两份 + 反传梯度一份），
+#   masked 注意力 32×8×862² ≈ 0.76 GB/份 × 每层数份 × 4 层；估计峰值超过 24 GB，单卡高风险 OOM（按指示保留官方 batch，不设 micro_batch）
+basic:
+  model: DUET
+  model_id: DUET_traffic_96_720
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 720
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_ff: 1024
+  e_layers: 4
+  factor: 3
+  dropout: 0.2
+
+training:
+  train_epochs: 100     # 官方 10 不覆盖：type3 计划与总轮数无关，靠早停自然收敛
+  patience: 3           # 官方脚本 patience 3（= default）
+  learning_rate: 0.0005
+  loss: MAE
+  lradj: type3
+
+duet:
+  duet_fc_dropout: 0.0  # 官方脚本 fc_dropout 0（default 0.2）

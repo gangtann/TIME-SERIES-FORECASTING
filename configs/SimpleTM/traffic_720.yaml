@@ -1,0 +1,36 @@
+# SimpleTM / traffic / 96 -> 720（官方 vsingh-group/SimpleTM scripts/multivariate_forecasting/Traffic/SimpleTM.sh 第4段(L91-118)；
+# 脚本显式 lradj TST / patience 3；pct_start 0.2 / epochs 10 为官方 run.py 默认（OneCycle 计划依赖总轮数，保留官方 10 轮）
+# 脚本未写的 dropout 0.1 / factor 1 / activation gelu / loss MSE / geomattn_dropout 0.5 与 default.yaml 相同，不覆盖；
+# 官方 fix_seed 2025 / itr 1 由本框架种子协议接管
+# 注意：官方该段首行误写为 'ppython -u run.py'（照原样执行会 command not found，该格官方实际未跑通），
+# 此处按其余参数原样移植（与 336 段完全相同，显然为笔误）
+# 显存提示：862 通道 × batch 32 × d_model 1024（m=1，2 个小波尺度）；官方单卡跑通，24 GB 预计可装下但未实测（不设 micro_batch）
+basic:
+  model: SimpleTM
+  model_id: SimpleTM_traffic_96_720
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 720
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_model: 1024
+  d_ff: 2048
+  e_layers: 1
+
+training:
+  batch_size: 32
+  learning_rate: 0.0005
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+
+simpletm:
+  stm_alpha: 0.1
+  stm_l1_weight: 0.0
+  stm_wv: db1
+  stm_m: 1

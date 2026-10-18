@@ -1,0 +1,37 @@
+# SimpleTM / illness / 36 -> 36（无官方配方：vsingh-group/SimpleTM、decisionintelligence/DUET scripts/multivariate_forecast/ILI_script/、
+# BenchCouncil/TimeMosaic scripts/SimpleTM/ 均无 SimpleTM 的 ILI 脚本）
+# 借用 SimpleTM 自家 scripts/multivariate_forecasting/ETT/SimpleTM_h2.sh 第2段(L33-60，pred_len=192)；视野按序号映射 24/36/48/60 -> 96/192/336/720
+# 选 ETTh2 的理由：同为 7 通道、强非平稳（水平漂移/趋势大）；且其四段配方均为最小容量（d_model 32 / e_layers 1 / m 1），
+# 适合 ILI 仅约 600 条训练样本（ETTh1 336 段 d_model 64 × e_layers 4 容量过大）；自家配方优先于 TimeMosaic 仓库的纯默认值 Exchange 配方
+# 输入窗口按本框架 illness 协议 seq_len=36 / label_len=18（SimpleTM 不读 label_len）；lradj TST + pct_start 0.2 / epochs 10 / patience 3 为官方 run.py 默认
+# seq_len=36 无需改模型：SWT 沿 d_model 轴（变量 token 的嵌入维）分解，seq_len 只进 Linear(36, d_model)；
+# 环形填充最大 dilation·(k-1)（m=1 时 db1 为 1、bior3.1 为 3）远小于 d_model=32
+# 注意：batch 256 在 ~600 条训练样本上每轮仅 3 步，10 轮 OneCycle 共约 30 步，照配方保留
+basic:
+  model: SimpleTM
+  model_id: SimpleTM_illness_36_36
+
+data:
+  data: custom
+  data_path: national_illness.csv
+  seq_len: 36
+  label_len: 18
+  pred_len: 36
+
+model:
+  d_model: 32
+  d_ff: 32
+  e_layers: 1
+
+training:
+  batch_size: 256
+  learning_rate: 0.006
+  lradj: TST
+  pct_start: 0.2
+  train_epochs: 10
+
+simpletm:
+  stm_alpha: 0.1
+  stm_l1_weight: 0.005
+  stm_wv: db1
+  stm_m: 1
