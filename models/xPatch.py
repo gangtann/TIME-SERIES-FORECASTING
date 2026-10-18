@@ -7,8 +7,8 @@ Decomposition (AAAI 2025)。
 - forward 适配本框架四参签名 forward(x_enc, x_mark_enc, x_dec, x_mark_dec)，
   官方 forward 只吃 x_enc，其余三个参数忽略；无辅助损失，恒返回单值 [B, pred_len, c_out]。
 - 专属依赖层（RevIN/EMA/DEMA/DECOMP/Network）全部合并进 layers/xPatch_layers.py，
-  类名加 XPatch 前缀（本框架已有的 layers/RevIN.py、layers/Decomp.py 为 PRISM 专用，
-  语义不同，不复用）；其中 EMA/DEMA 的硬编码 cuda 已设备无关化（详见该文件头）。
+  类名加 XPatch 前缀（PRISM 的 RevIN/分解在 layers/PRISM_layers.py 内，语义不同，
+  不复用）；其中 EMA/DEMA 的硬编码 cuda 已设备无关化（详见该文件头）。
 - 模型专属超参读扁平命名空间的 xp_ 前缀键：xp_ma_type / xp_alpha / xp_beta /
   xp_revin / xp_padding_patch；patch_len、stride 复用 model 节通用键。
 - ma_type='reg'（无分解消融）时不构造 DECOMP（官方无条件构造但留空 self.ma）；

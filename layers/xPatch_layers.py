@@ -5,8 +5,8 @@
 官方仓库: https://github.com/stitsyuk/xPatch
 
 移植改动（相对官方源码）:
-- 全部类名加 XPatch 前缀防撞：本框架已有 layers/RevIN.py、layers/Decomp.py 为 PRISM
-  专用且语义不同，均不复用、不覆盖。
+- 全部类名加 XPatch 前缀防撞：PRISM 的 RevIN/分解在 layers/PRISM_layers.py 内且
+  语义不同，均不复用、不覆盖。
 - 设备无关化：官方 ema.py 中 `weights = torch.pow(...).to('cuda')` 改为按输入张量
   device 创建；官方 dema.py 中 `alpha.to(device='cuda')` 对 python float 本身会报错
   （官方遗留 bug，源自可学习参数版本的注释代码），此处按语义直接保存 float。

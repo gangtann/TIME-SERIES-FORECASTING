@@ -18,7 +18,7 @@
   - pf_patch_size_list 在 yaml 里为扁平列表，此处按官方 run.py L85 的方式
     reshape 成 (layer_nums, -1) 的每层专家 patch 列表；
   - 依赖层（AMS/Transformer_Layer/RevIN 等）全部合并在 layers/PathFormer_layers.py，
-    不复用本框架 layers/RevIN.py（PRISM 版，语义不同）。
+    不复用 layers/PRISM_layers.py 的 RevIN（语义不同）。
 """
 from torch import nn
 

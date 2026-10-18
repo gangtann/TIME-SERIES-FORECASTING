@@ -1,7 +1,7 @@
 """PathFormer 专属依赖层（合并自官方仓库，不与本框架其他 layers 共享）。
 
 来源：https://github.com/decisionintelligence/pathformer
-  - layers/RevIN.py         -> RevIN（与本框架 layers/RevIN.py 的 PRISM 版语义不同，独立携带）
+  - layers/RevIN.py         -> RevIN（与 layers/PRISM_layers.py 的 RevIN 语义不同，独立携带）
   - layers/Embedding.py     -> positional_encoding 及其编码函数（仅移植 PathFormer 实际可达部分）
   - layers/Layer.py         -> Transformer_Layer / CustomLinear / Intra_Patch_Attention /
                                Inter_Patch_Attention / ScaledDotProductAttention /
