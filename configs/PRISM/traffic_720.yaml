@@ -1,0 +1,33 @@
+# PRISM(FRAME 主干) / traffic / 96 -> 720（官方 scripts/Frame/Traffic.sh：d_model=512 pattern_nums=5 seasonal_alpha=0.9 p_model=256 freq_topk=3
+# rec_lambda=0.3 auxi_lambda=0.7 batch=256 lr=0.005 epochs=10 patience=3 min_patch_len=8 pattern_strategy=1；
+# 官方脚本四个 pred_len 同配方；seed/切分/标准化/指标/drop_last=False 用本框架协议）
+basic:
+  model: PRISM
+  model_id: PRISM_traffic_96_720
+
+data:
+  data: custom
+  data_path: traffic.csv
+  pred_len: 720
+  enc_in: 862
+  dec_in: 862
+  c_out: 862
+
+model:
+  d_model: 512
+
+prism:
+  pattern_nums: 5
+  seasonal_alpha: 0.9
+  p_model: 256
+  freq_topk: 3
+  n_tokens: 4              # 默认网格按周期定（用户决定 2026-09-10，不做网格搜索）：小时级数据主周期 24 步，4 段 × 24 步，每段一天
+
+training:
+  batch_size: 256
+  learning_rate: 0.005
+  patience: 5              # 主线配方：不设轮数上限（default 100）、type3 学习率、耐心 5；原版 Frame 为 10 轮/type1/耐心 3
+  lradj: type3
+  micro_batch: 16           # 显存用：batch 仍为官方 256，拆成 16 条一块梯度累积（跨通道 token 混合随 batch×862² 增长，24 GB 装不下整批）
+  rec_lambda: 0.3
+  auxi_lambda: 0.7

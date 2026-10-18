@@ -45,7 +45,8 @@ model:
   use_norm: true           # 模型内置归一化开关（iTransformer/SimpleTM 等 baseline 读取；PatchTST/PRISM 不读）
 
 training:
-  train_epochs: 30
+  train_epochs: 100        # 轮数上限不作为约束（2026-09-10 用户规定：每个模型靠早停自然收敛）；
+                           #   官方脚本按 epoch 数定义学习率计划的模型（TST/cosine 类）在各自 yaml 保留官方轮数
   batch_size: 32
   patience: 3
   learning_rate: 0.0001
@@ -53,39 +54,102 @@ training:
   lradj: type1             # type1/type2/type3/cosine/constant/TST(OneCycleLR)/sigmoid(xPatch)/cosine2(TimeFilter)
   pct_start: 0.3           # 仅 lradj=TST 时生效
   use_amp: false
+  micro_batch: 0           # 0 = 关。>0 时每个 batch 拆成 ≤ micro_batch 条的块做前向/反传，梯度累积后每 batch 更新一次；
+                           # batch 组成、步数、学习率计划与整批 batch_size 完全一致，验证/测试也分块前向。只为装进显存，
+                           # 不改配方（PRISM 在 traffic/electricity 上 batch 256 装不下跨通道 token 混合）
   rec_lambda: 1.0          # 时域 MSE 权重（仅 auxi_lambda>0 时参与加权）
   auxi_lambda: 0.0         # FreDF 频域辅助损失权重；0 = 完全关闭（走原始损失路径）
   auxi_type: complex       # 频域损失形式（当前实现: complex 差的模）
 
-prism:                     # PRISM 专用超参（其他模型不读取本节）
-  n_patterns: 8            # K：谱模式字典大小
-  freq_topk: 8             # 幅度谱 top-k 稀疏化
-  smooth_sigma: 1.0        # 稀疏谱的高斯平滑带宽（0 关闭）
-  route_temp_init: 5.0     # 路由门控可学习逆温度的初始值
-  route_reg: 0.0           # 门控熵正则权重（经模型 aux loss 钩子生效）
-  use_srm: true            # 消融③: false = 完全旁路谱关系建模（异构图+谱滤波）
-  use_graph: true          # 消融④: false = 保留逐节点滤波器但无图消息传递
-  d_graph: 64              # 图节点特征维度
-  graph_layers: 1
-  use_fusion: true         # 消融⑤: false = 只用趋势分支预测
-  decomp_type: ema         # ema | moving_avg
-  decomp_alpha: 0.3        # EMA 平滑系数（decomp_type=ema）
-  moving_avg: 25           # 滑动平均窗口（decomp_type=moving_avg）
-  d_head: 128              # 预测头瓶颈宽度
-  # ---- 谱驱动信息时钟（自适应 patch 主干）----
-  clock_n_patch: 12        # patch 预算 N（token 数恒定；须整除 seq_len）
-  clock_d_v: 16            # 内容前端 conv 特征维度
-  clock_basis: 4           # 箱内余弦基个数 R（保序池化；1 = 纯均值池化消融）
-  clock_floor: 0.2         # 密度下界混合系数 λ：单箱物理宽度 ≤ L/(λN)
-  clock_reverse: true      # 反向积分锚定（最近时间步获得最强边界梯度）
-  clock_win: 16            # 短时谱滑窗宽度
-  clock_density: spectral  # 消融②: spectral=局部谱亲和驱动（论文一致）| mlp=自由密度对照
-  clock_detach_dict: false # true = 时钟不回传梯度给谱模式字典（保护 SRM 语义）
-  clock_temp_init: 5.0     # 局部亲和 softmax 可学习逆温度初始值
-  clock_mode: adaptive     # 消融①: adaptive | uniform(严格等分) | reweight_only(边界钉死)
-  clock_kl_lo: 0.0         # KL 带下界（逼迫时钟偏离均匀；0 关闭）
-  clock_kl_hi: 0.0         # KL 带上界（限制边界漂移；0 关闭）
-  clock_reg: 0.0           # KL 带正则权重（经模型 aux loss 钩子生效）
+prism:                     # PRISM 专用超参（其他模型不读取本节）；键名沿用 FRAME 原版 argparse
+  patch_pool: [0, 8, 12, 16, 24, 28, 32, 40, 48]  # 候选 patch 长度偏移，实际长度 = min_patch_len + 偏移
+                           # （原版 argparse 默认 [0,2,3,5]，但全部 seq96 脚本用本行这套）
+  min_patch_len: 8         # 最短 patch，同时决定 max_patch_len = min_patch_len + max(pool)（原版 --min_patch_len 8）
+  pattern_nums: 5          # K：谱模式原型数 = MoE 专家数（原版默认 5，各 yaml 逐数据集覆盖）
+  pattern_strategy: 1      # 消融①原型参数化: 0 混合 | 1 共享随机 | 2 逐通道随机 | 3 数据驱动共享 | 4 数据驱动逐通道（原版全脚本 1）
+  freq_topk: 3             # 谱相似度保留的 top-k 频点（原版默认 3；须 ≤ max_patch_len//2+1）
+  p_model: 64              # patch 内部特征维 D_p，须被 n_heads 整除（原版默认 64）
+  seasonal_alpha: 0.9      # 消融②谱/趋势分支混合: 1.0 = 纯谱分支，0.0 = 纯趋势分支（原版默认 0.9）
+  moving_avg: 25           # SpectralMoE 内 series_decomp 滑窗（原版默认 25；沿 patch 轴平滑，见 layers 文件头）
+  gumbel_tau: 0.5          # patch 长度硬选择温度（原版硬编码 0.5；仅训练期，推理恒走 argmax）
+  patch_select: st         # st(默认，无噪声直通估计，前向确定) | gumbel(原版，每步重采样分块，
+                           #   实测 run 间相对标准差 2.7~5.1%，大于多数待测效应，结论不可用)
+  sra_sigma: 0.3           # 稀疏谱高斯平滑带宽（原版 PDP 调用处硬编码 0.3；0 关闭平滑）
+  # ---- 消融开关（原版无，本框架新增；默认值 = 原版完整模型）----
+  sra_sparse: true         # 消融③频域匹配: false = 跳过 top-k 稀疏化与高斯平滑，直接算原始谱余弦
+  use_hgnn: false          # 消融④关系建模(原始位置)：图作用在专家滤波器 self.weights 上。
+                           #   默认 false —— w 与 pattern_emb(strategy 0~2) 均为自由参数，图输出仍是
+                           #   自由参数，可达滤波器集合不变，纯重参数化，消融效应必为零（六次实测确认）。
+                           #   真正的关系建模走 token_mix（图作用在数据上）。true 保留作对照挡
+  hgnn_ctx: static         # static(原版：图节点上下文是 pattern_emb，而 pattern_strategy=1 下它是纯自由参数，
+                           #   故 HGNN 只是重参数化、use_hgnn 消融必为零) | spectral(注入逐样本跨通道谱画像，
+                           #   投影零初始化故初值与 static 等价；本模型唯一的真跨通道通路)
+  use_moe_gate: true       # 消融⑤混合专家: false = 门控退化为均匀 1/K（K 个专家等权平均）
+  # ---- 结构改动（原版无）----
+  tokenize: direct         # direct(默认，token 展平后是预测头唯一输入) | recon(原版，patch 散射回 [B,C,L]，
+                           #   与输入同形状同量级，预测头可完全绕开主干——实测旁路对照四格差异 ≤0.4%，
+                           #   残差门自学到仅 0.06，主干贡献不可区分于零)
+  patch_mode: uniform      # greedy(原版，游标扫描，段数随 batch 变化，无法配 tokenize=direct)
+                           # | uniform(等分 N 段) | fixed_random(构造期抽定一组非等分段长，此后恒定；
+                           #   与 uniform 只差"段长不等"、与 greedy_fixed 只差"边界不随输入变"，用于
+                           #   拆分这两项的影响) | greedy_fixed(谱共振定边界 + 恰好 N 段，
+                           #   候选长度过精确可达性表；与 uniform 构成 Adaptive 主张的 A/B 对照)
+                           # | greedy_v2(自适应 v2：候选段面积重采样到 adp_resample_len 后打分、可训练路由
+                           #   MLP 由预测损失经直通估计选段、恰好 N 段；配 adp_regrid 重栅格化。需 tokenize=direct、
+                           #   boundary_scope=sample、patch_norm=resample；等分是其 ℓ≡T0 的特例。见 layers 文件头)
+                           # | oracle(oracle-EM：构造期枚举全部合法划分（≤512 种），训练时 E 步逐划分前向、用真实预测损失
+                           #   为每条样本选划分，M 步在该划分上训练并用交叉熵训练路由器，推理走路由器 argmax；暖启动期恒等分。
+                           #   固定最优 ⇒ E 步恒选等分 ⇒ 数值等于固定 patch。需 tokenize=direct、patch_norm=resample，
+                           #   且等分长度须在池内。测试末尾打印 oracle 上界与路由器一致率。见 layers 文件头)
+  patch_norm: pad          # pad(原版：段零填充到 max_patch_len 再 rFFT，短段谱被矩形窗泄漏主导，相似度成了长度的
+                           #   函数) | resample(段面积重采样到 adp_resample_len；fixed_random 挡可用，用于把"段长不等"
+                           #   的代价与零填充/槽位失配拆开；greedy_v2 强制 resample)。uniform 挡两者恒等
+  adp_resample_len: 16     # T0：重采样后的段长（= 等分段长时 uniform 与重采样管线逐位同形）
+  adp_router_hidden: 32    # greedy_v2 路由器 MLP 隐层宽度（输入 K 个共振分数 + log(ℓ/T0)，输出 1 个 logit）
+  adp_lambda: 0.01         # greedy_v2 选段分布熵正则系数（0 关闭）：log P − H(p̄)，p̄ 为整批决策的平均软选择分布
+  oracle_warmup: 5         # oracle 挡暖启动轮数：前几轮恒用等分划分，模型从固定 patch 的解出发
+  oracle_ce: 1.0           # oracle 挡路由器交叉熵权重（模仿 E 步标签）
+  oracle_chunk: 8          # oracle 挡 E 步每次并行评估的划分数（复制 batch，显存换时间）
+  oracle_margin: 0.0       # oracle 挡 E 步离开等分的门槛：argmin 损失 < 等分损失×(1−margin) 才选非等分（滤 31 选 1 的选择噪声）
+  oracle_train_on: router  # oracle 挡 M 步用的划分：router(路由器 argmax，训练即测试用法；路由器恒等分时与固定 patch 逐位相同)
+                           #   | oracle(E 步标签；首轮实测因训练/测试划分分布不一致比固定差 1.3%)
+  adp_regrid: true         # 非等分挡把 N 个 token 按时间重叠投影回 N 个等分槽位（可微无参数），展平头的槽位语义
+                           #   不再随边界漂移。注意：④/④b 消融行（greedy_fixed/fixed_random）的历史数字在此键
+                           #   之前测得，run_ablation.sh 已为这两行显式关闭
+  gate_scope: token        # channel(原版：逐样本/逐段分数被 mean 掉，门控恒为 [C,K]，等价于每通道一个
+                           #   自由滤波器，故门控与其消融效应必为零) | token(保留 [B,P,K]，路由真正随输入变化)
+  token_mix: hgnn          # hgnn(默认，把 HeteroGraphAttention
+                           #   移到 token 序列上，节点=(通道,patch 位置)，两步注意力=同通道跨时间/同时刻跨通道；
+                           #   零初始化门，初值与 none 等价。需 tokenize=direct)
+                           # | none(原版：token 之间从不交互，通道间也不通信)
+                           # 实测：weather 96 格 -7.23%(约 8σ，3 种子)；ETTh1 上不显著，但 ETTh1 的跨通道
+                           # 可提取信息实测中位 +0.1%（weather +1.5%、11/21 通道正增益），即数据集无信号所致
+  token_mix_layers: 1      # token 图混合层数（两个胜出 baseline 均为 2）；每层各带零初始化门
+  token_pos_enc: false     # direct 挡给每个 token 拼归一化 (起点,段长) 两维。边界可变时展平头对
+                           #   "第 i 槽位"的固定权重会失配（槽位覆盖的时间逐样本漂移），本项补位置信息
+  boundary_scope: sample   # batch(原版：SRA 对 batch 维取均值，分块方案由整批投票决定——同一条样本换批次
+                           #   同伴分段就变；等分挡边界固定故不显形，自适应挡致命) | sample(逐样本定边界)
+  gate_temp_init: 1.0      # MoE 门控可学习逆温度初值（1.0 = 原版等价）。原版无温度、余弦分数值域 [-1,1]
+                           # 直接过 softmax，实测门控熵达最大熵 99.7%，混合专家退化为等权平均
+  n_tokens: 6              # 固定段数 N（uniform 挡须整除 seq_len；direct 挡预测头输入维 = N·p_model）
+  use_backbone: true       # 决定性对照: false = 完全旁路 FRAME 主干（分块+谱MoE 不构造），退化为 RevIN+预测头
+  residual_mode: none      # none(原版) | gate_input(主干恒通、x 门控接入) | gate_backbone(x 恒通、主干作零初始化修正)
+  moe_init: small          # small(原版 std=0.02，eff_w≈0 使主干清零输入) | allpass(时域冲激，起点为全通恒等滤波)
+  head_drop: 0.0           # 预测头 dropout（0 = 原版等价；长视野头部占九成参数，抗过拟合用）
+  head_type: linear        # mlp = 原版 Linear(L,d_model)-ReLU-Linear(d_model,H) | linear = 单层 Linear(L,H)（缩头，把容量让回主干）
+  aux_stream: trend        # 近端流（原版无；2026-09-10 起为架构默认组件，所有数据集统一开启）：
+                           #   none | full(全窗 Linear(L,H)，DLinear 式) | trend(时间轴滑动平均：
+                           #   趋势走线性头、季节项进主干，xPatch/DLinear 分解式) | last(最后 L/N 个原始点 Linear(L/N,H))
+                           #   与主干并联、零初始化 tanh 门相加：full/last 初值与 none 逐位等价，trend 挡主干输入改为季节项。
+                           #   动机：ETTh1 96 格按预测步拆误差，第 1 步落后赢家 24.6%、1–4 步 15.6%、64–96 步仅 1.2%——
+                           #   direct 挡下末尾原始值只能经末段谱滤波进头，相位精确的近端信息丢失；96 格两个赢家
+                           #   （TimeMosaic/xPatch）都有原始序列→输出的线性通路。能力上限一层线性(≈DLinear)，主干须优于它才拿到权重
+                           #   进入架构的依据（只看验证集）：ETTh2 单种子四视野最优验证损失之和 1.4147(trend) vs 1.4696(none)，
+                           #   四个视野全部更优；ETTh1 验证集不支持（4.5430 vs 4.5257）但测试支持，故不以 ETTh1 定案。见 docs/training_protocol.md
+  aux_kernel: 25           # trend 挡的时间轴滑动平均窗（仅 aux_stream=trend 生效）
+  token_mix_gate: shared   # shared(intra 跨时间 + inter 跨通道 两步等权相加) | split(两步各配标量门，初值 1 与 shared 逐位等价)
+                           #   ETTh1 跨通道可提取信息≈0、关掉整个 token 混合反好 1.8%，但共用门只能同开同关；
+                           #   split 让模型只关跨通道、保留跨时间，训练后门值直接读出该数据集用了哪种关系
 
 # ---- baseline 模型专属节（键名带模型前缀防撞；各模型只读自己的节）----
 dlinear:

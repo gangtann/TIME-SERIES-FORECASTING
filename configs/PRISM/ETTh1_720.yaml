@@ -1,4 +1,8 @@
-# PRISM / ETTh1 / 96 -> 720
+# PRISM(FRAME 主干) / ETTh1 / 96 -> 720（官方 scripts/Frame/ETTh1.sh：d_model=1024 pattern_nums=5
+# seasonal_alpha=0.9 p_model=64 freq_topk=3 rec_lambda=0.7 auxi_lambda=0.3
+# batch=256 lr=0.005 epochs=10 patience=3 min_patch_len=8 pattern_strategy=1 lradj=type1(官方未覆盖)；
+# 官方脚本仅保留 pred_len=336 一档调参，96/192/720 沿用同数据集 336 配方；
+# seed/切分/标准化/指标/drop_last=False 用本框架协议，官方 seed 为 2024）
 basic:
   model: PRISM
   model_id: PRISM_ETTh1_96_720
@@ -9,15 +13,19 @@ data:
   pred_len: 720
 
 model:
-  d_model: 64
-  d_ff: 128
-  e_layers: 2
-  n_heads: 4
-  dropout: 0.3
-  head_dropout: 0.0
+  d_model: 1024
+
+prism:
+  pattern_nums: 5
+  seasonal_alpha: 0.9
+  p_model: 64
+  freq_topk: 3
+  n_tokens: 4              # 默认网格按周期定（用户决定 2026-09-10，不做网格搜索）：小时级数据主周期 24 步，4 段 × 24 步，每段一天
 
 training:
-  batch_size: 128
-  learning_rate: 0.0002
+  batch_size: 256
+  learning_rate: 0.005
+  patience: 5              # 主线配方：不设轮数上限（default 100）、type3 学习率、耐心 5；原版 Frame 为 10 轮/type1/耐心 3
   lradj: type3
-  patience: 12
+  rec_lambda: 0.7
+  auxi_lambda: 0.3
